@@ -29,31 +29,35 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String authHeader = request.getHeader("Authorization");
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String jwt = authHeader.substring(7);
-            try {
-                String username = jwtUtil.extractUsername(jwt);
-                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    if (jwtUtil.validateToken(jwt)) {
-                        String role = jwtUtil.extractRole(jwt);
-                        if (role == null) {
-                            role = "ROLE_CUSTOMER";
-                        }
-                        if (!role.startsWith("ROLE_")) {
-                            role = "ROLE_" + role;
-                        }
+            String jwt = authHeader.substring(7).trim();
+            
+            // If the token is empty or a mock simulation string, safely skip JWT parsing
+            if (!jwt.isEmpty() && !jwt.startsWith("mock-jwt-") && jwt.split("\\.").length == 3) {
+                try {
+                    String username = jwtUtil.extractUsername(jwt);
+                    if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                        if (jwtUtil.validateToken(jwt)) {
+                            String role = jwtUtil.extractRole(jwt);
+                            if (role == null) {
+                                role = "ROLE_CUSTOMER";
+                            }
+                            if (!role.startsWith("ROLE_")) {
+                                role = "ROLE_" + role;
+                            }
 
-                        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                                username,
-                                null,
-                                Collections.singletonList(new SimpleGrantedAuthority(role))
-                        );
-                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                                    username,
+                                    null,
+                                    Collections.singletonList(new SimpleGrantedAuthority(role))
+                            );
+                            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                            SecurityContextHolder.getContext().setAuthentication(authToken);
+                        }
                     }
+                } catch (Exception e) {
+                    // Ignore expired/invalid token; permit anonymous access on public routes
+                    logger.debug("JWT validation skipped: " + e.getMessage());
                 }
-            } catch (Exception e) {
-                // Ignore expired or invalid token on public routes; proceed with anonymous access
-                logger.debug("JWT validation skipped or invalid: " + e.getMessage());
             }
         }
 

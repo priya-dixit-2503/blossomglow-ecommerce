@@ -20,10 +20,10 @@ const axiosClient: AxiosInstance = axios.create({
   },
 });
 
-// Auto-inject JWT Bearer token into all requests
+// Auto-inject JWT Bearer token into all requests (skip mock tokens)
 axiosClient.interceptors.request.use((config) => {
   const token = localStorage.getItem(AUTH_TOKEN_KEY);
-  if (token && config.headers) {
+  if (token && !token.startsWith('mock-jwt-') && token.split('.').length === 3 && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
