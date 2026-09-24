@@ -1,0 +1,6 @@
+{
+  "name": "BLOSSOMGLOW Candle Creations",
+  "description": "Handcrafted botanical soy candles, luxury fragrance vessels, and artisanal gift sets with clean-burn wicks and natural essential oils.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

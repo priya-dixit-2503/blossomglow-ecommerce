@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --color-warm-ivory: #FAF8F5;
+  --color-warm-sand: #F4EFEB;
+  --color-warm-stone: #292524;
+  --color-candle-amber: #D97706;
+}
+
+body {
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  background-color: #FAF8F5;
+  color: #1C1917;
+  overflow-x: hidden;
+}
+
+.font-editorial {
+  font-family: "Cormorant Garamond", Georgia, serif;
+}
+
+/* Custom smooth scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #FAF8F5;
+}
+::-webkit-scrollbar-thumb {
+  background: #D6CEBE;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #B5A893;
+}
+
+@keyframes pop-bounce {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(0.85);
+  }
+  60% {
+    transform: scale(1.22);
+  }
+  85% {
+    transform: scale(0.96);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-pop-bounce {
+  animation: pop-bounce 420ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes gentle-pop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-gentle-pop {
+  animation: gentle-pop 380ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
