@@ -42,7 +42,6 @@ public class Order {
     @Column(nullable = false, length = 30)
     private String phone;
 
-    @Lob
     @Column(name = "shipping_address", nullable = false, columnDefinition = "TEXT")
     private String shippingAddress;
 
@@ -81,7 +80,6 @@ public class Order {
     @Column(name = "estimated_delivery_date", length = 100)
     private String estimatedDeliveryDate;
 
-    @Lob
     @Column(name = "special_instructions", columnDefinition = "TEXT")
     private String specialInstructions;
 

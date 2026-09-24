@@ -31,7 +31,6 @@ public class ContactMessage {
     @Column(nullable = false, length = 200)
     private String subject;
 
-    @Lob
     @Column(nullable = false, columnDefinition = "TEXT")
     private String message;
 

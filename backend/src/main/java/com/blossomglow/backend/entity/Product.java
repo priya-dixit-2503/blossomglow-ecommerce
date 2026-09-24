@@ -76,11 +76,9 @@ public class Product {
     @Column(name = "scent_intensity", nullable = false)
     private Integer scentIntensity = 4;
 
-    @Lob
     @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
-    @Lob
     @Column(name = "artisan_story", columnDefinition = "TEXT")
     private String artisanStory;
 
