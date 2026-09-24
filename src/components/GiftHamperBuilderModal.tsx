@@ -14,8 +14,6 @@ export const GiftHamperBuilderModal: React.FC<GiftHamperBuilderModalProps> = ({
   onClose,
   onAddHamperToCart,
 }) => {
-  if (!isOpen) return null;
-
   const candleOptions = MOCK_PRODUCTS.filter(p => p.category !== 'Artisanal Decor' && p.category !== 'Diffusers & Home Accents');
 
   const [selectedCandleIds, setSelectedCandleIds] = useState<string[]>([
@@ -27,6 +25,8 @@ export const GiftHamperBuilderModal: React.FC<GiftHamperBuilderModalProps> = ({
   const [giftNote, setGiftNote] = useState('Wishing you warmth, light, and serene moments.');
   const [recipient, setRecipient] = useState('For Someone Cherished');
   const [includeSnuffer, setIncludeSnuffer] = useState(true);
+
+  if (!isOpen) return null;
 
   const toggleCandle = (id: string) => {
     if (selectedCandleIds.includes(id)) {

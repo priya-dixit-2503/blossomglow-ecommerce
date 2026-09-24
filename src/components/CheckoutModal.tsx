@@ -18,8 +18,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   couponCode,
   onOrderSuccess,
 }) => {
-  if (!isOpen) return null;
-
   const [step, setStep] = useState<'details' | 'payment' | 'processing' | 'confirmed'>('details');
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
 
@@ -37,6 +35,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'Card' | 'NetBanking' | 'Cash on Delivery'>('UPI');
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
+
+  if (!isOpen) return null;
 
   const subtotal = items.reduce((sum, item) => sum + item.itemPrice * item.quantity, 0);
   let discount = 0;

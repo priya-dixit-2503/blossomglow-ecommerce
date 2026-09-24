@@ -95,3 +95,14 @@ INSERT INTO products (
     '100% Organic Soy Wax', '28cm x 14cm x 6cm', TRUE, 15, TRUE, FALSE, 'Heritage Hearth'
 )
 ON DUPLICATE KEY UPDATE name=name;
+
+-- Seed Initial Verified Reviews
+INSERT INTO reviews (id, product_id, author_name, location, rating, title, comment, verified)
+VALUES
+(1, 1, 'Ananya Sharma', 'Mumbai, MH', 5, 'Breathtaking 3D Roses & Scent', 'The hand-sculpted roses are even more gorgeous in person. The fragrance filled my entire living room within 15 minutes of lighting. Truly artisanal!', TRUE),
+(2, 1, 'Rohan Mehta', 'Bengaluru, KA', 5, 'Perfect Diwali & Housewarming Gift', 'Purchased this for a friend’s housewarming. The packaging was immaculate, and the bamboo lid keeps the scent intact when unlit.', TRUE),
+(3, 2, 'Kavita Nair', 'Pune, MH', 5, 'Authentic Coconut Bowl Aesthetic', 'Love that this is made in real reclaimed coconut. The crackling wooden wick sounds like a tiny cozy fireplace. Zero soot!', TRUE),
+(4, 3, 'Dr. Aris Thorne', 'Delhi, DL', 5, 'Incredible Zen Aura in My Studio', 'The details on the Buddha face and drapery are extraordinary. It creates an instantly meditative atmosphere in my clinic.', TRUE),
+(5, 6, 'Sneha Patel', 'Ahmedabad, GJ', 5, 'The Evil Eye Charm is Real Glass!', 'The packaging is royal luxury! The glass nazar talisman looks stunning hanging by my entryway. Will definitely order again.', TRUE)
+ON DUPLICATE KEY UPDATE title=title;
+

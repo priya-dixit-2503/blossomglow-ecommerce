@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, Eye, ShoppingBag, Flame, Star, Check, Sparkles } from 'lucide-react';
+import { Heart, Eye, ShoppingBag, Flame, Star, Check, AlertCircle } from 'lucide-react';
 import { Product } from '../types';
 import { ProductImageCarousel } from './ProductImageCarousel';
 import { ambientAudio } from '../utils/soundEffects';
@@ -35,8 +35,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     return [product.image];
   }, [product.image, product.galleryImages]);
 
+  const discountPercent =
+    product.originalPrice && product.originalPrice > product.price
+      ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+      : null;
+
+  const isLowStock = product.stockQuantity !== undefined && product.stockQuantity > 0 && product.stockQuantity <= 5;
+  const isOutOfStock = product.inStock === false || product.stockQuantity === 0;
+
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isOutOfStock) return;
     ambientAudio.playSoftClick();
     onQuickAdd(product);
 
@@ -52,16 +61,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   return (
     <div
-      className={`group relative flex flex-col bg-white border rounded-xl overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ${
+      className={`group relative flex flex-col bg-white dark:bg-stone-900 border rounded-2xl overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ${
         isCardPopping
           ? 'animate-gentle-pop ring-2 ring-amber-500/50 border-amber-300 shadow-xl'
-          : 'border-stone-200/70'
+          : 'border-stone-200/80 dark:border-stone-800'
       }`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Product Image Slot with Automatic Carousel / Slider (fixed aspect-[4/3]) */}
-      <div className="relative aspect-[4/3] w-full bg-[#F5F2EC] overflow-hidden">
+      <div className="relative aspect-[4/3] w-full bg-[#F5F2EC] dark:bg-stone-800 overflow-hidden">
         <ProductImageCarousel
           images={allImages}
           alt={product.name}
@@ -71,15 +80,33 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           onImageClick={() => onQuickView(product)}
         />
 
-        {/* Subtle Status Tag */}
-        {product.isBestSeller && (
-          <div className="absolute top-3 left-3 z-15 bg-[#262220]/90 text-amber-200 text-[10px] font-medium tracking-widest uppercase px-2.5 py-1 rounded backdrop-blur-xs shadow-xs pointer-events-none">
-            Signature Bestseller
-          </div>
-        )}
-        {product.isNewArrival && !product.isBestSeller && (
-          <div className="absolute top-3 left-3 z-15 bg-amber-950/85 text-amber-100 text-[10px] font-medium tracking-widest uppercase px-2.5 py-1 rounded backdrop-blur-xs shadow-xs pointer-events-none">
-            New Atelier Edition
+        {/* Status Badges */}
+        <div className="absolute top-3 left-3 z-15 flex flex-col gap-1 pointer-events-none">
+          {product.isBestSeller && (
+            <span className="bg-[#262220]/90 text-amber-200 text-[10px] font-medium tracking-widest uppercase px-2.5 py-0.5 rounded-full backdrop-blur-xs shadow-xs">
+              Signature Bestseller
+            </span>
+          )}
+          {product.isNewArrival && !product.isBestSeller && (
+            <span className="bg-amber-950/85 text-amber-100 text-[10px] font-medium tracking-widest uppercase px-2.5 py-0.5 rounded-full backdrop-blur-xs shadow-xs">
+              New Atelier Edition
+            </span>
+          )}
+          {isOutOfStock ? (
+            <span className="bg-stone-900/90 text-stone-300 text-[10px] font-medium uppercase px-2 py-0.5 rounded-full backdrop-blur-xs">
+              Sold Out
+            </span>
+          ) : isLowStock ? (
+            <span className="bg-rose-900/90 text-rose-200 text-[10px] font-medium uppercase px-2 py-0.5 rounded-full backdrop-blur-xs">
+              Only {product.stockQuantity} left
+            </span>
+          ) : null}
+        </div>
+
+        {/* Discount Tag */}
+        {discountPercent && (
+          <div className="absolute bottom-3 right-3 z-15 bg-amber-500 text-stone-950 font-mono font-bold text-[10px] px-2 py-0.5 rounded-full shadow-sm">
+            {discountPercent}% OFF
           </div>
         )}
 
@@ -90,10 +117,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             ambientAudio.playSoftClick();
             onToggleWishlist(product.id);
           }}
-          className={`absolute top-3 right-3 z-20 p-2 rounded-full transition-all ${
+          className={`absolute top-3 right-3 z-20 p-2 rounded-full transition-all cursor-pointer ${
             isWishlisted
               ? 'bg-rose-50 text-rose-600 shadow-sm scale-110'
-              : 'bg-white/90 text-stone-600 hover:text-rose-600 hover:bg-white shadow-xs'
+              : 'bg-white/90 dark:bg-stone-900/90 text-stone-600 dark:text-stone-300 hover:text-rose-600 hover:bg-white shadow-xs'
           }`}
           title={isWishlisted ? 'Remove from wishlist' : 'Save to wishlist'}
           aria-label="Wishlist toggle"
@@ -101,9 +128,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-rose-500 text-rose-500' : ''}`} />
         </button>
 
-        {/* Dynamic Scent Throw Dots Floating Tag (hidden on mobile and hidden on hover) */}
+        {/* Dynamic Scent Throw Dots */}
         {!isHovered && (
-          <div className="absolute bottom-3 left-3 z-10 hidden sm:flex items-center gap-1 bg-stone-900/75 backdrop-blur-xs px-2 py-0.5 rounded text-[10px] text-amber-300 font-mono opacity-80 pointer-events-none">
+          <div className="absolute bottom-3 left-3 z-10 hidden sm:flex items-center gap-1 bg-stone-900/75 backdrop-blur-xs px-2 py-0.5 rounded-md text-[10px] text-amber-300 font-mono opacity-80 pointer-events-none">
             <Flame className="w-2.5 h-2.5 text-amber-400" />
             <span>Throw {product.scentIntensity}/5</span>
           </div>
@@ -125,22 +152,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         >
           <button
             onClick={() => onQuickView(product)}
-            className="flex-1 bg-white/95 hover:bg-white text-stone-900 py-2.5 px-3 rounded-lg text-xs font-medium tracking-wider uppercase shadow-md flex items-center justify-center gap-1.5 transition-colors border border-stone-200"
+            className="flex-1 bg-white/95 hover:bg-white text-stone-900 py-2.5 px-3 rounded-xl text-xs font-medium tracking-wider uppercase shadow-md flex items-center justify-center gap-1.5 transition-colors border border-stone-200 cursor-pointer"
           >
             <Eye className="w-3.5 h-3.5 text-stone-600" />
             <span>Atelier View</span>
           </button>
-          
+
           <button
             onClick={handleQuickAdd}
-            className={`relative py-2.5 px-3.5 rounded-lg shadow-md transition-all duration-300 flex items-center justify-center gap-1.5 ${
+            disabled={isOutOfStock}
+            className={`relative py-2.5 px-3.5 rounded-xl shadow-md transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
               isPopping ? 'animate-pop-bounce ring-4 ring-emerald-400/40' : ''
             } ${
               justAdded
                 ? 'bg-emerald-600 text-white shadow-emerald-600/30 scale-105'
                 : 'bg-[#262220] hover:bg-black text-white hover:scale-105 active:scale-90'
             }`}
-            title="Quick Add to Bag"
+            title={isOutOfStock ? 'Sold Out' : 'Quick Add to Bag'}
             aria-label="Quick Add"
           >
             {justAdded ? (
@@ -162,31 +190,40 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
         <div>
           {/* Category & Burn Time Metadata */}
-          <div className="flex items-center gap-2 text-[11px] text-stone-500 tracking-wider uppercase font-medium">
-            <span>{product.fragranceFamily}</span>
-            <span aria-hidden="true" className="text-stone-300">·</span>
-            <span>{product.burnTimeHours}h Burn</span>
+          <div className="flex items-center justify-between text-[11px] text-stone-500 tracking-wider uppercase font-medium">
+            <div className="flex items-center gap-1.5">
+              <span>{product.fragranceFamily}</span>
+              <span aria-hidden="true" className="text-stone-300">·</span>
+              <span>{product.burnTimeHours}h Burn</span>
+            </div>
+            {product.stockQuantity !== undefined && (
+              <span className="text-[10px] font-mono text-stone-400">
+                {product.stockQuantity > 0 ? `${product.stockQuantity} in stock` : 'Out of stock'}
+              </span>
+            )}
           </div>
 
           {/* Product Name */}
           <h3
             onClick={() => onQuickView(product)}
-            className="font-editorial text-lg font-medium text-stone-900 tracking-normal hover:text-amber-800 transition-colors cursor-pointer mt-1 line-clamp-1"
+            className="font-editorial text-lg font-medium text-stone-900 dark:text-stone-100 tracking-normal hover:text-amber-800 dark:hover:text-amber-400 transition-colors cursor-pointer mt-1 line-clamp-1"
           >
             {product.name}
           </h3>
 
           {/* Scent notes summary */}
           <p className="text-stone-500 text-xs line-clamp-1 mt-0.5">
-            {product.scentPyramid.topNotes.slice(0, 2).join(', ')} &amp; {product.scentPyramid.heartNotes[0]}
+            {product.scentPyramid?.topNotes?.slice(0, 2).join(', ')} &amp; {product.scentPyramid?.heartNotes?.[0]}
           </p>
         </div>
 
         {/* Rating & Price Row */}
-        <div className="pt-2 border-t border-stone-100 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1 text-xs text-amber-700">
+        <div className="pt-2 border-t border-stone-100 dark:border-stone-800 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400">
             <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-            <span className="font-mono font-medium text-stone-800 tabular-nums">{product.rating.toFixed(1)}</span>
+            <span className="font-mono font-medium text-stone-800 dark:text-stone-200 tabular-nums">
+              {product.rating.toFixed(1)}
+            </span>
             <span className="text-stone-400 text-[11px]">({product.reviewsCount})</span>
           </div>
 
@@ -197,15 +234,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   ₹{product.originalPrice}
                 </span>
               )}
-              <span className="text-sm sm:text-base font-semibold text-stone-900 font-mono tabular-nums">
+              <span className="text-sm sm:text-base font-semibold text-stone-900 dark:text-stone-100 font-mono tabular-nums">
                 ₹{product.price}
               </span>
             </div>
 
-            {/* Mobile-Friendly Quick Add Icon Button with Pop Animation */}
+            {/* Mobile-Friendly Quick Add Icon Button */}
             <button
               onClick={handleQuickAdd}
-              className={`sm:hidden p-2 rounded-lg text-xs flex items-center justify-center transition-all ${
+              disabled={isOutOfStock}
+              className={`sm:hidden p-2 rounded-xl text-xs flex items-center justify-center transition-all cursor-pointer disabled:opacity-40 ${
                 isPopping ? 'animate-pop-bounce ring-2 ring-emerald-400/40' : ''
               } ${
                 justAdded
@@ -215,7 +253,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               title="Quick Add to Bag"
               aria-label="Quick Add"
             >
-              {justAdded ? <Check className="w-3.5 h-3.5 text-white stroke-[2.5]" /> : <ShoppingBag className="w-3.5 h-3.5" />}
+              {justAdded ? (
+                <Check className="w-3.5 h-3.5 text-white stroke-[2.5]" />
+              ) : (
+                <ShoppingBag className="w-3.5 h-3.5" />
+              )}
             </button>
           </div>
         </div>

@@ -61,6 +61,13 @@ const COLLECTIONS: CollectionItem[] = [
     categoryFilter: 'Botanical Bowls & Shells',
   },
   {
+    id: 'trays-jesmonite',
+    name: 'Trays & Accents',
+    image: PRODUCT_ASSETS.flutedMarbledTrayDuo,
+    count: 'Jesmonite Decor',
+    categoryFilter: 'Diffusers & Home Accents',
+  },
+  {
     id: 'evil-eye',
     name: 'Evil Eye Boxes',
     image: PRODUCT_ASSETS.evilEyeBox,

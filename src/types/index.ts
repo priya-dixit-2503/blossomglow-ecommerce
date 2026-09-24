@@ -136,3 +136,24 @@ export interface HamperCustomization {
   recipientName: string;
   brassSnufferIncluded: boolean;
 }
+
+export interface UserProfile {
+  id: string;
+  username: string;
+  email: string;
+  fullName: string;
+  phone?: string;
+  role: 'ROLE_CUSTOMER' | 'ROLE_ADMIN';
+  token?: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  type: string;
+  id: number;
+  username: string;
+  email: string;
+  fullName: string;
+  role: 'ROLE_CUSTOMER' | 'ROLE_ADMIN';
+}
+

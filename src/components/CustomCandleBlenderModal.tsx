@@ -35,8 +35,6 @@ export const CustomCandleBlenderModal: React.FC<CustomCandleBlenderModalProps> =
   onClose,
   onAddCustomCandleToCart,
 }) => {
-  if (!isOpen) return null;
-
   const [topNote, setTopNote] = useState(TOP_NOTES[0]);
   const [heartNote, setHeartNote] = useState(HEART_NOTES[0]);
   const [baseNote, setBaseNote] = useState(BASE_NOTES[0]);
@@ -45,6 +43,8 @@ export const CustomCandleBlenderModal: React.FC<CustomCandleBlenderModalProps> =
   const [customLabel, setCustomLabel] = useState('Sanctuary Reserve No. 1');
   const [makerName, setMakerName] = useState('Hand-blended for You');
   const [isLit, setIsLit] = useState(true);
+
+  if (!isOpen) return null;
 
   // Vessel style visual properties
   const vesselStyles: Record<VesselColor, { bg: string; text: string; labelBg: string; border: string }> = {

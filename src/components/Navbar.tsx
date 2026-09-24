@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Heart, Search, Menu, X, Sparkles, ShieldCheck, PhoneCall, Code2, Package } from 'lucide-react';
+import { ShoppingBag, Heart, Search, Menu, X, Sparkles, ShieldCheck, PhoneCall, Code2, Package, User, LogOut, ChevronDown, CheckCircle2, AlertCircle } from 'lucide-react';
 import { ANNOUNCEMENT_CONFIG } from '../config/announcements';
 import { BRAND_CONFIG } from '../config/brandConfig';
+import { UserProfile } from '../types';
+import { CandleApiService } from '../services/api';
 
 interface NavbarProps {
   cartCount: number;
   wishlistCount: number;
+  currentUser?: UserProfile | null;
   onOpenCart: () => void;
   onOpenWishlist: () => void;
   onOpenSearch: () => void;
@@ -14,6 +17,9 @@ interface NavbarProps {
   onOpenArchitecture: () => void;
   onOpenTracking?: () => void;
   onOpenScentQuiz?: () => void;
+  onOpenAuth?: (mode?: 'login' | 'register' | 'admin') => void;
+  onOpenOrderHistory?: () => void;
+  onLogout?: () => void;
   onNavigateToHome: () => void;
   onNavigateToShop: (category?: string) => void;
   onNavigateToCollections: () => void;
@@ -24,6 +30,7 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   cartCount,
   wishlistCount,
+  currentUser,
   onOpenCart,
   onOpenWishlist,
   onOpenSearch,
@@ -32,6 +39,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenArchitecture,
   onOpenTracking,
   onOpenScentQuiz,
+  onOpenAuth,
+  onOpenOrderHistory,
+  onLogout,
   onNavigateToHome,
   onNavigateToShop,
   onNavigateToCollections,
@@ -39,7 +49,20 @@ export const Navbar: React.FC<NavbarProps> = ({
   onNavigateToGifting,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [activeAnnouncementIdx, setActiveAnnouncementIdx] = useState(0);
+  const [isBackendConnected, setIsBackendConnected] = useState<boolean | null>(null);
+
+  // Check Spring Boot status periodically
+  useEffect(() => {
+    const checkStatus = async () => {
+      const live = await CandleApiService.checkBackendHealth();
+      setIsBackendConnected(live);
+    };
+    checkStatus();
+    const interval = setInterval(checkStatus, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Auto-rotate announcement if configured
   useEffect(() => {
@@ -74,7 +97,23 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </div>
 
-          <div className="hidden lg:flex items-center gap-4 text-[11px] text-stone-300">
+          <div className="hidden lg:flex items-center gap-3 text-[11px] text-stone-300">
+            {/* Backend Connectivity Indicator */}
+            <button
+              onClick={onOpenArchitecture}
+              className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-stone-800/90 hover:bg-stone-700 transition-colors text-[10px] font-mono cursor-pointer"
+              title="Click to view Spring Boot & MySQL architecture"
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  isBackendConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
+                }`}
+              />
+              <span className="text-stone-300">
+                {isBackendConnected ? 'Spring Boot 8080 Active' : 'Spring Boot: Ready'}
+              </span>
+            </button>
+
             {onOpenTracking && (
               <button
                 onClick={onOpenTracking}
@@ -84,13 +123,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span>Track Order</span>
               </button>
             )}
+
             <button
               onClick={onOpenArchitecture}
               className="flex items-center gap-1 text-[10px] text-stone-400 hover:text-amber-200 transition-colors uppercase font-mono tracking-wider"
               title="View Spring Boot & MySQL Architecture"
             >
               <Code2 className="w-3 h-3 text-amber-400" />
-              <span>API Docs</span>
+              <span>API Specs</span>
             </button>
           </div>
         </div>
@@ -110,16 +150,19 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             onClick={onNavigateToHome}
-            className="text-left group cursor-pointer focus:outline-none"
+            className="text-left group cursor-pointer focus:outline-none flex items-center gap-3 shrink-0 py-1"
           >
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-editorial text-2xl sm:text-3xl font-medium tracking-wider text-stone-950 group-hover:text-amber-900 transition-colors">
-                {BRAND_CONFIG.brandName}
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-amber-500/15 border border-amber-600/30 flex items-center justify-center text-amber-800 shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+              <Sparkles className="w-4 h-4 text-amber-600" />
+            </div>
+            <div className="flex flex-col text-left leading-none">
+              <span className="font-editorial text-2xl sm:text-[27px] font-medium tracking-wide text-stone-950 group-hover:text-amber-900 transition-colors whitespace-nowrap">
+                BlossomGlow
+              </span>
+              <span className="text-[9px] uppercase tracking-[0.24em] text-stone-500 font-medium block mt-1 whitespace-nowrap group-hover:text-amber-800">
+                Candle Creations
               </span>
             </div>
-            <span className="text-[10px] uppercase tracking-[0.2em] text-stone-500 font-medium block -mt-0.5 group-hover:text-stone-700">
-              Candles &amp; Home Accents
-            </span>
           </button>
         </div>
 
@@ -161,13 +204,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             Gift Hampers
           </button>
-          {onOpenTracking && (
+          {onOpenOrderHistory && (
             <button
-              onClick={onOpenTracking}
+              onClick={onOpenOrderHistory}
               className="hover:text-stone-950 hover:underline underline-offset-8 transition-colors cursor-pointer flex items-center gap-1 text-stone-600"
             >
               <Package className="w-3.5 h-3.5 text-amber-700" />
-              <span>Track</span>
+              <span>Orders</span>
             </button>
           )}
           <button
@@ -184,8 +227,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </nav>
 
-        {/* Right: Actions (Search, Scent Quiz, Admin, Wishlist, Cart) */}
-        <div className="flex items-center gap-1.5 sm:gap-3">
+        {/* Right: Actions (Search, Scent Quiz, Auth / Account, Wishlist, Cart) */}
+        <div className="flex items-center gap-1.5 sm:gap-2.5">
           {/* Search Icon */}
           <button
             onClick={onOpenSearch}
@@ -208,7 +251,94 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
-          {/* Admin / Account Icon */}
+          {/* User Account / Auth Dropdown */}
+          <div className="relative">
+            {currentUser ? (
+              <div className="relative">
+                <button
+                  onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                  className="flex items-center gap-1.5 p-1 sm:px-2.5 sm:py-1.5 rounded-full border border-stone-300 hover:border-amber-700/50 bg-stone-100/80 hover:bg-white transition-all text-xs font-medium cursor-pointer"
+                >
+                  <div className="w-6 h-6 rounded-full bg-amber-800 text-amber-100 flex items-center justify-center font-bold text-[11px]">
+                    {currentUser.fullName ? currentUser.fullName[0].toUpperCase() : 'U'}
+                  </div>
+                  <span className="hidden md:inline text-stone-800 max-w-[90px] truncate">
+                    {currentUser.fullName.split(' ')[0]}
+                  </span>
+                  {currentUser.role === 'ROLE_ADMIN' && (
+                    <span className="hidden sm:inline-block px-1.5 py-0.2 rounded text-[9px] bg-amber-200 text-amber-900 font-bold uppercase">
+                      Admin
+                    </span>
+                  )}
+                  <ChevronDown className="w-3.5 h-3.5 text-stone-500" />
+                </button>
+
+                {/* Dropdown Menu */}
+                {userDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-stone-900 rounded-2xl shadow-xl border border-stone-200 dark:border-stone-800 py-2 z-50 animate-fadeIn">
+                    <div className="px-4 py-2 border-b border-stone-100 dark:border-stone-800">
+                      <p className="text-xs font-semibold text-stone-900 dark:text-stone-100 truncate">
+                        {currentUser.fullName}
+                      </p>
+                      <p className="text-[11px] text-stone-500 truncate">{currentUser.email}</p>
+                      <span className="inline-block mt-1 px-2 py-0.5 rounded text-[10px] bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-mono">
+                        {currentUser.role === 'ROLE_ADMIN' ? 'Administrator' : 'Customer Account'}
+                      </span>
+                    </div>
+
+                    {onOpenOrderHistory && (
+                      <button
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          onOpenOrderHistory();
+                        }}
+                        className="w-full text-left px-4 py-2 text-xs text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800 flex items-center gap-2 cursor-pointer"
+                      >
+                        <Package className="w-4 h-4 text-amber-700" />
+                        <span>My Order History</span>
+                      </button>
+                    )}
+
+                    {currentUser.role === 'ROLE_ADMIN' && (
+                      <button
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          onOpenAdmin();
+                        }}
+                        className="w-full text-left px-4 py-2 text-xs text-amber-900 font-medium hover:bg-amber-50 dark:text-amber-300 dark:hover:bg-amber-950/40 flex items-center gap-2 cursor-pointer"
+                      >
+                        <ShieldCheck className="w-4 h-4 text-amber-700" />
+                        <span>Admin Dashboard</span>
+                      </button>
+                    )}
+
+                    <div className="border-t border-stone-100 dark:border-stone-800 my-1" />
+
+                    <button
+                      onClick={() => {
+                        setUserDropdownOpen(false);
+                        if (onLogout) onLogout();
+                      }}
+                      className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center gap-2 cursor-pointer"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={() => onOpenAuth && onOpenAuth('login')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-stone-300 hover:border-amber-700 text-stone-700 hover:text-amber-900 hover:bg-stone-50 transition-colors text-xs font-medium cursor-pointer"
+              >
+                <User className="w-4 h-4" />
+                <span className="hidden sm:inline">Sign In</span>
+              </button>
+            )}
+          </div>
+
+          {/* Admin Dashboard Quick Access */}
           <button
             onClick={onOpenAdmin}
             className="p-2 sm:p-2.5 text-stone-700 hover:text-stone-950 hover:bg-stone-200/60 rounded-full transition-colors relative group cursor-pointer"
@@ -314,16 +444,28 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               Luxury Gift Hampers
             </button>
+            {onOpenOrderHistory && (
+              <button
+                onClick={() => {
+                  onOpenOrderHistory();
+                  setMobileMenuOpen(false);
+                }}
+                className="block w-full text-left py-2.5 px-3 rounded-lg hover:bg-stone-100 text-amber-900 font-bold flex items-center gap-2 transition-colors"
+              >
+                <Package className="w-4 h-4 text-amber-700" />
+                <span>My Orders</span>
+              </button>
+            )}
             {onOpenTracking && (
               <button
                 onClick={() => {
                   onOpenTracking();
                   setMobileMenuOpen(false);
                 }}
-                className="block w-full text-left py-2.5 px-3 rounded-lg hover:bg-stone-100 text-amber-800 flex items-center gap-2 transition-colors"
+                className="block w-full text-left py-2.5 px-3 rounded-lg hover:bg-stone-100 text-stone-700 flex items-center gap-2 transition-colors"
               >
-                <Package className="w-4 h-4 text-amber-600" />
-                <span>Track Your Order</span>
+                <Package className="w-4 h-4 text-stone-500" />
+                <span>Track Courier Order</span>
               </button>
             )}
             <button
@@ -333,7 +475,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }}
               className="block w-full text-left py-2.5 px-3 rounded-lg hover:bg-stone-100 transition-colors"
             >
-              About BlossomGlow Candle Creations
+              About BlossomGlow Atelier
             </button>
             <button
               onClick={() => {

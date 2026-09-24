@@ -1,22 +1,47 @@
 /**
  * BlossomGlow Product Image Asset Index
- * Organized image catalog mapping directly to uploaded photography
+ * Directly imported so Vite processes, bundles, and serves real images in all environments
  */
+
+import floralGarden from './floral-garden.jpg';
+import naturalSpice from './natural-spice.jpg';
+import buddhaSerenity from './buddha-serenity.jpg';
+import lotusGlow from './lotus-glow.jpg';
+import minimalRibbed from './minimal-ribbed.jpg';
+
+import evilEyeBox from './evil-eye-gift-box.jpg';
+import woodenDoughBowl from './wooden-dough-bowl.jpg';
+import gildedLotusHamper from './gilded-lotus-hamper.jpg';
+import teddyBabyShower from './teddy-baby-shower.jpg';
+import babyElephant from './baby-elephant.jpg';
+import concreteArchClock from './concrete-arch-clock.jpg';
+import terrazzoArchVase from './terrazzo-arch-vase.jpg';
+
+import flutedMarbledTrayDuo from './fluted-marbled-tray-duo.jpg';
+import hollowArchBudVase from './hollow-arch-bud-vase.jpg';
+import flutedCarouselJar from './fluted-carousel-jar.jpg';
+import wavyRippleTray from './wavy-ripple-tray.jpg';
 
 export const PRODUCT_ASSETS = {
   // Five Flagship Requested Candles
-  floralGarden: '/src/assets/products/floral-garden.jpg',
-  naturalSpice: '/src/assets/products/natural-spice.jpg',
-  buddhaSerenity: '/src/assets/products/buddha-serenity.jpg',
-  lotusGlow: '/src/assets/products/lotus-glow.jpg',
-  minimalRibbed: '/src/assets/products/minimal-ribbed.jpg',
+  floralGarden,
+  naturalSpice,
+  buddhaSerenity,
+  lotusGlow,
+  minimalRibbed,
 
   // Curated Artisanal Hampers & Handcrafted Decor
-  evilEyeBox: '/src/assets/products/evil-eye-gift-box.jpg',
-  woodenDoughBowl: '/src/assets/products/wooden-dough-bowl.jpg',
-  gildedLotusHamper: '/src/assets/products/gilded-lotus-hamper.jpg',
-  teddyBabyShower: '/src/assets/products/teddy-baby-shower.jpg',
-  babyElephant: '/src/assets/products/baby-elephant.jpg',
-  concreteArchClock: '/src/assets/products/concrete-arch-clock.jpg',
-  terrazzoArchVase: '/src/assets/products/terrazzo-arch-vase.jpg',
+  evilEyeBox,
+  woodenDoughBowl,
+  gildedLotusHamper,
+  teddyBabyShower,
+  babyElephant,
+  concreteArchClock,
+  terrazzoArchVase,
+
+  // Real Artisan Additions
+  flutedMarbledTrayDuo,
+  hollowArchBudVase,
+  flutedCarouselJar,
+  wavyRippleTray,
 };

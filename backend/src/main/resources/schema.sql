@@ -141,3 +141,32 @@ CREATE TABLE IF NOT EXISTS contact_messages (
     status VARCHAR(30) DEFAULT 'UNREAD',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 9. Product Reviews Table
+CREATE TABLE IF NOT EXISTS reviews (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    product_id BIGINT NOT NULL,
+    user_id BIGINT,
+    author_name VARCHAR(150) NOT NULL,
+    location VARCHAR(100) DEFAULT 'Mumbai, India',
+    rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    title VARCHAR(200),
+    comment TEXT NOT NULL,
+    verified BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_reviews_product (product_id)
+);
+
+-- 10. Wishlist Items Table
+CREATE TABLE IF NOT EXISTS wishlist_items (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    product_id BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_user_product_wishlist (user_id, product_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+

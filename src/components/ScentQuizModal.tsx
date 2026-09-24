@@ -16,8 +16,6 @@ export const ScentQuizModal: React.FC<ScentQuizModalProps> = ({
   onSelectProduct,
   onQuickAdd,
 }) => {
-  if (!isOpen) return null;
-
   const [step, setStep] = useState<number>(1);
   const [answers, setAnswers] = useState({
     mood: '',
@@ -25,6 +23,8 @@ export const ScentQuizModal: React.FC<ScentQuizModalProps> = ({
     space: ''
   });
   const [recommendedProduct, setRecommendedProduct] = useState<Product | null>(null);
+
+  if (!isOpen) return null;
 
   const moods = [
     { id: 'fireside', title: 'Cozy Fireside Solitude', subtitle: 'Warm, grounding, introspective retreat' },
