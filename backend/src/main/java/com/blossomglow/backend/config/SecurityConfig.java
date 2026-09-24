@@ -1,6 +1,7 @@
 package com.blossomglow.backend.config;
 
 import com.blossomglow.backend.security.JwtAuthenticationFilter;
+import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,6 +15,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
+
+import static org.springframework.security.web.util.matcher.AntPathRequestMatcher.antMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -31,40 +34,57 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Allow all CORS preflight OPTIONS requests unconditionally
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                // Allow internal container forwards and error pages
+                .dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ERROR).permitAll()
 
-                // Root Discovery, Error, and Swagger Documentation endpoints
-                .requestMatchers("/", "/api", "/error", "/index.html", "/static/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                // Allow all CORS preflight OPTIONS requests unconditionally
+                .requestMatchers(antMatcher(HttpMethod.OPTIONS, "/**")).permitAll()
+
+                // Static resources & documentation
+                .requestMatchers(
+                    antMatcher("/"),
+                    antMatcher("/api"),
+                    antMatcher("/error"),
+                    antMatcher("/index.html"),
+                    antMatcher("/static/**"),
+                    antMatcher("/favicon.ico"),
+                    antMatcher("/v3/api-docs/**"),
+                    antMatcher("/swagger-ui/**"),
+                    antMatcher("/swagger-ui.html")
+                ).permitAll()
 
                 // Public Authentication endpoints
-                .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
-                .requestMatchers("/api/auth/me").authenticated()
+                .requestMatchers(
+                    antMatcher("/api/auth/login"),
+                    antMatcher("/api/auth/register")
+                ).permitAll()
 
-                // Public storefront APIs (Explicitly allow both exact path and all subpaths)
-                .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/categories", "/api/categories/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/reviews", "/api/reviews/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/reviews").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/cart", "/api/cart/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/cart", "/api/cart/**").permitAll()
-                .requestMatchers(HttpMethod.PUT, "/api/cart", "/api/cart/**").permitAll()
-                .requestMatchers(HttpMethod.DELETE, "/api/cart", "/api/cart/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/orders").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/orders/track", "/api/orders/track/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/contact").permitAll()
+                // Public storefront and catalog endpoints (all HTTP methods; mutation secured via @PreAuthorize)
+                .requestMatchers(
+                    antMatcher("/api/products"),
+                    antMatcher("/api/products/**"),
+                    antMatcher("/api/categories"),
+                    antMatcher("/api/categories/**"),
+                    antMatcher("/api/reviews"),
+                    antMatcher("/api/reviews/**"),
+                    antMatcher("/api/cart"),
+                    antMatcher("/api/cart/**"),
+                    antMatcher("/api/orders"),
+                    antMatcher("/api/orders/track"),
+                    antMatcher("/api/orders/track/**"),
+                    antMatcher("/api/contact"),
+                    antMatcher("/api/contact/**")
+                ).permitAll()
 
-                // Customer authenticated endpoints
-                .requestMatchers("/api/orders/my-orders").authenticated()
-                .requestMatchers("/api/wishlist/**").authenticated()
+                // Authenticated customer endpoints
+                .requestMatchers(
+                    antMatcher("/api/auth/me"),
+                    antMatcher("/api/orders/my-orders"),
+                    antMatcher("/api/wishlist/**")
+                ).authenticated()
 
-                // Admin endpoints requiring ROLE_ADMIN
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.POST, "/api/products").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.GET, "/api/orders").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/orders/**").hasRole("ADMIN")
+                // Protected admin management endpoints
+                .requestMatchers(antMatcher("/api/admin/**")).hasRole("ADMIN")
 
                 // Any other request
                 .anyRequest().permitAll()

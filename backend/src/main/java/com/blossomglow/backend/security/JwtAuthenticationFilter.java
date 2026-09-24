@@ -27,35 +27,33 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
 
         final String authHeader = request.getHeader("Authorization");
-        String username = null;
-        String jwt = null;
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            jwt = authHeader.substring(7);
+            String jwt = authHeader.substring(7);
             try {
-                username = jwtUtil.extractUsername(jwt);
+                String username = jwtUtil.extractUsername(jwt);
+                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    if (jwtUtil.validateToken(jwt)) {
+                        String role = jwtUtil.extractRole(jwt);
+                        if (role == null) {
+                            role = "ROLE_CUSTOMER";
+                        }
+                        if (!role.startsWith("ROLE_")) {
+                            role = "ROLE_" + role;
+                        }
+
+                        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                                username,
+                                null,
+                                Collections.singletonList(new SimpleGrantedAuthority(role))
+                        );
+                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                    }
+                }
             } catch (Exception e) {
-                logger.debug("Failed to extract username from JWT: " + e.getMessage());
-            }
-        }
-
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            if (jwtUtil.validateToken(jwt)) {
-                String role = jwtUtil.extractRole(jwt);
-                if (role == null) {
-                    role = "ROLE_CUSTOMER";
-                }
-                if (!role.startsWith("ROLE_")) {
-                    role = "ROLE_" + role;
-                }
-
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        username,
-                        null,
-                        Collections.singletonList(new SimpleGrantedAuthority(role))
-                );
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                // Ignore expired or invalid token on public routes; proceed with anonymous access
+                logger.debug("JWT validation skipped or invalid: " + e.getMessage());
             }
         }
 
