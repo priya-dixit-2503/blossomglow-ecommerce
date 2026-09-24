@@ -2,10 +2,13 @@ package com.blossomglow.backend.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -21,6 +24,16 @@ public class GlobalExceptionHandler {
         body.put("status", HttpStatus.NOT_FOUND.value());
         body.put("error", "Not Found");
         body.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNoResourceFound(NoResourceFoundException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", HttpStatus.NOT_FOUND.value());
+        body.put("error", "Resource Not Found");
+        body.put("message", "The requested path was not found. Please access /swagger-ui.html for documentation or /api/products.");
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
     }
 
@@ -40,6 +53,26 @@ public class GlobalExceptionHandler {
         body.put("fieldErrors", errors);
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", HttpStatus.UNAUTHORIZED.value());
+        body.put("error", "Unauthorized");
+        body.put("message", "Invalid username or password");
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<Map<String, Object>> handleMethodNotAllowed(HttpRequestMethodNotSupportedException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", HttpStatus.METHOD_NOT_ALLOWED.value());
+        body.put("error", "Method Not Allowed");
+        body.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(body);
     }
 
     @ExceptionHandler(Exception.class)

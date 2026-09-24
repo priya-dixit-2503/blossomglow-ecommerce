@@ -30,8 +30,8 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // OpenAPI / Swagger Documentation endpoints
-                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                // Root Discovery & Swagger Documentation endpoints
+                .requestMatchers("/", "/api", "/error", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 
                 // Public Authentication endpoints
                 .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlossomGlow REST API Backend</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #FAF8F5;
+            color: #262220;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .card {
+            background: #ffffff;
+            border: 1px solid #EAE3DC;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 640px;
+            width: 100%;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+        .badge {
+            display: inline-block;
+            background: #F4EBE1;
+            color: #8C532B;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 9999px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+        h1 {
+            font-size: 28px;
+            margin: 0 0 12px;
+            color: #1A1816;
+        }
+        p {
+            color: #6E6864;
+            line-height: 1.6;
+            margin: 0 0 24px;
+        }
+        .links {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #C48044;
+            color: #ffffff;
+        }
+        .btn-primary:hover {
+            background: #A96832;
+        }
+        .btn-secondary {
+            background: #F6F3EE;
+            color: #403A36;
+            border: 1px solid #E2DDD6;
+        }
+        .btn-secondary:hover {
+            background: #ECE7DF;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <span class="badge">BlossomGlow REST API • Active</span>
+        <h1>Spring Boot Backend is Running</h1>
+        <p>The BlossomGlow Candle Creations REST backend is connected and ready. Explore the interactive documentation or test API endpoints below.</p>
+        <div class="links">
+            <a href="/swagger-ui.html" class="btn btn-primary">Open Swagger UI Documentation</a>
+            <a href="/api/products" class="btn btn-secondary">View Products API (/api/products)</a>
+            <a href="/v3/api-docs" class="btn btn-secondary">OpenAPI JSON Spec (/v3/api-docs)</a>
+        </div>
+    </div>
+</body>
+</html>
