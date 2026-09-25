@@ -382,6 +382,8 @@ export default function App() {
         onOpenArchitecture={() => setIsArchitectureOpen(true)}
         onOpenTracking={() => setIsTrackingOpen(true)}
         onOpenScentQuiz={() => setIsScentQuizOpen(true)}
+        onOpenCareGuide={() => setIsCareGuideOpen(true)}
+        onOpenCustomBlender={() => setIsCustomBlenderOpen(true)}
         onOpenAuth={handleOpenAuth}
         onOpenOrderHistory={() => setIsOrderHistoryOpen(true)}
         onLogout={handleLogout}
