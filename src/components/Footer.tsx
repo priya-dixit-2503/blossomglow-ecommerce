@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowRight, Check, Sparkles, ShieldCheck, Terminal, Package, PhoneCall, Mail, MapPin } from 'lucide-react';
 import { BRAND_CONFIG } from '../config/brandConfig';
+import { BlossomGlowLogo } from './BlossomGlowLogo';
 
 interface FooterProps {
   onOpenScentQuiz: () => void;
@@ -35,14 +36,7 @@ export const Footer: React.FC<FooterProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-stone-800/80">
           {/* Brand Col */}
           <div className="lg:col-span-2 space-y-4">
-            <div>
-              <span className="font-editorial text-2xl md:text-3xl font-normal tracking-wider text-white block">
-                {BRAND_CONFIG.brandName}
-              </span>
-              <span className="text-[10px] uppercase tracking-[0.25em] text-amber-400 font-medium block">
-                Candles &amp; Home Accents
-              </span>
-            </div>
+            <BlossomGlowLogo size="lg" showText={true} variant="dark" />
 
             <p className="text-stone-300 text-xs sm:text-sm font-light leading-relaxed max-w-sm">
               We seek to awaken your senses, to bring to your life and home a deep sense of joy, serenity, and illumination through handcrafted scented pillars, amber jar soy candles, floating flower blossoms, and luxury urli gift sets.

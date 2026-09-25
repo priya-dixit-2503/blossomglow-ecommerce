@@ -13,7 +13,6 @@ import {
   Layers,
   Heart,
   ShieldCheck,
-  CheckCircle2
 } from 'lucide-react';
 import { PRODUCT_ASSETS } from '../assets/products';
 
@@ -134,12 +133,29 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     return () => clearInterval(timer);
   }, [heroMode, isPaused]);
 
+  // Ensure video plays smoothly whenever heroMode switches to 'video'
+  useEffect(() => {
+    if (heroMode === 'video' && videoRef.current) {
+      videoRef.current.defaultMuted = true;
+      videoRef.current.muted = isMuted;
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsVideoPlaying(true);
+          })
+          .catch(() => {
+            setIsVideoPlaying(false);
+          });
+      }
+    }
+  }, [heroMode, isMuted]);
+
   // Video play/pause toggle
   const togglePlayVideo = () => {
     if (!videoRef.current) return;
     if (videoRef.current.paused) {
-      videoRef.current.play();
-      setIsVideoPlaying(true);
+      videoRef.current.play().then(() => setIsVideoPlaying(true)).catch(() => {});
     } else {
       videoRef.current.pause();
       setIsVideoPlaying(false);
@@ -181,8 +197,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             loop
             muted={isMuted}
             playsInline
+            preload="auto"
             onLoadedData={() => setVideoLoaded(true)}
-            className="w-full h-full object-cover object-center filter brightness-[0.55] contrast-[1.08] transition-opacity duration-1000"
+            onPlay={() => setIsVideoPlaying(true)}
+            onPause={() => setIsVideoPlaying(false)}
+            className="w-full h-full object-cover object-center filter brightness-[0.62] contrast-[1.05] transition-opacity duration-1000"
           />
           {/* Subtle warm cinematic vignette overlays */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/25 pointer-events-none" />
@@ -264,197 +283,97 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
       {/* ---------------- FOREGROUND CONTENT ---------------- */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-          
-          {/* Main Left Copy */}
-          <div className="lg:col-span-8 space-y-6 sm:space-y-8">
-            {/* Atelier Heritage Tag */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-stone-950/80 border border-amber-500/40 text-amber-200 text-[11px] sm:text-xs uppercase font-mono tracking-widest backdrop-blur-md shadow-xl">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-              </span>
-              <span>
-                {heroMode === 'video'
-                  ? 'Priya Dixit Candle Atelier • Hand-Poured Real Studio'
-                  : slide.badge}
-              </span>
-            </div>
-
-            {/* Headline & Description */}
-            <div className="space-y-4">
-              <h1 className="font-editorial text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-light text-[#FAF8F5] tracking-tight leading-[1.06] drop-shadow-md [text-wrap:balance]">
-                {heroMode === 'video' ? (
-                  <>
-                    Sacred Flames &{' '}
-                    <span className="italic font-serif text-amber-300">Hand-Sculpted</span>{' '}
-                    Sanctuary Decor
-                  </>
-                ) : (
-                  slide.title
-                )}
-              </h1>
-
-              <p className="text-sm sm:text-base md:text-lg text-stone-200 font-light leading-relaxed max-w-2xl drop-shadow">
-                {heroMode === 'video' ? (
-                  'Discover artisan scented soy candles, architectural Jesmonite decor trays, and delicate hand-sculpted floral creations — poured with love, clean wicks, and phthalate-free botanical essences by founder Priya Dixit.'
-                ) : (
-                  slide.subtitle
-                )}
-              </p>
-            </div>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 pt-2">
-              <button
-                onClick={onShopCandles}
-                className="px-8 py-4 bg-[#D4AF37] hover:bg-[#E5C358] text-stone-950 text-xs sm:text-sm font-semibold uppercase tracking-[0.18em] rounded-xl transition-all shadow-xl hover:shadow-2xl flex items-center justify-center gap-2 group cursor-pointer active:scale-95"
-              >
-                <span>Shop Real Creations</span>
-                <ArrowRight className="w-4 h-4 text-stone-950 group-hover:translate-x-1 transition-transform" />
-              </button>
-
-              <button
-                onClick={() => {
-                  if (heroMode === 'video') {
-                    onExploreCollection('Diffusers & Home Accents');
-                  } else {
-                    onExploreCollection(slide.category);
-                  }
-                }}
-                className="px-8 py-4 bg-white/10 hover:bg-white/20 text-[#FAF8F5] border border-white/30 hover:border-white/60 text-xs sm:text-sm font-semibold uppercase tracking-[0.18em] rounded-xl backdrop-blur-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
-              >
-                <Flame className="w-4 h-4 text-amber-300" />
-                <span>Explore Jesmonite & Trays</span>
-              </button>
-            </div>
-
-            {/* Atelier Pillars / Micro Metrics */}
-            <div className="pt-6 border-t border-white/15 grid grid-cols-3 gap-3 sm:gap-6 text-left max-w-lg">
+        <div className="max-w-3xl space-y-6 sm:space-y-8">
+          {/* Headline & Description */}
+          <div className="space-y-4">
+            <h1 className="font-editorial text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-light text-[#FAF8F5] tracking-tight leading-[1.06] drop-shadow-md [text-wrap:balance]">
               {heroMode === 'video' ? (
                 <>
-                  <div className="space-y-0.5">
-                    <span className="font-editorial text-lg sm:text-2xl text-amber-300 font-normal">
-                      100% Soy
-                    </span>
-                    <p className="text-[10px] sm:text-xs text-stone-300 font-light leading-tight">
-                      Zero toxins, soot-free burn
-                    </p>
-                  </div>
-                  <div className="space-y-0.5">
-                    <span className="font-editorial text-lg sm:text-2xl text-amber-300 font-normal">
-                      Handmade
-                    </span>
-                    <p className="text-[10px] sm:text-xs text-stone-300 font-light leading-tight">
-                      Cast & cured in small batches
-                    </p>
-                  </div>
-                  <div className="space-y-0.5">
-                    <span className="font-editorial text-lg sm:text-2xl text-amber-300 font-normal">
-                      Crackling
-                    </span>
-                    <p className="text-[10px] sm:text-xs text-stone-300 font-light leading-tight">
-                      Natural FSC-certified wood wicks
-                    </p>
-                  </div>
+                  Sacred Flames &{' '}
+                  <span className="italic font-serif text-amber-300">Hand-Sculpted</span>{' '}
+                  Sanctuary Decor
                 </>
               ) : (
-                slide.stats.map((st, i) => (
-                  <div key={i} className="space-y-0.5">
-                    <span className="font-editorial text-base sm:text-xl text-amber-300 font-normal">
-                      {st.value}
-                    </span>
-                    <p className="text-[10px] sm:text-xs text-stone-300 font-light leading-tight">
-                      {st.label}
-                    </p>
-                  </div>
-                ))
+                slide.title
               )}
-            </div>
+            </h1>
+
+            <p className="text-sm sm:text-base md:text-lg text-stone-200 font-light leading-relaxed max-w-2xl drop-shadow">
+              {heroMode === 'video' ? (
+                'Discover artisan scented soy candles, architectural Jesmonite decor trays, and delicate hand-sculpted floral creations — poured with love, clean wicks, and phthalate-free botanical essences by founder Priya Dixit.'
+              ) : (
+                slide.subtitle
+              )}
+            </p>
           </div>
 
-          {/* Right Column: Floating Real Creations Preview Card */}
-          <div className="lg:col-span-4 hidden lg:block">
-            <div className="p-4 rounded-2xl bg-black/60 border border-white/15 backdrop-blur-xl shadow-2xl space-y-3">
-              <div className="flex items-center justify-between text-xs text-amber-200">
-                <span className="font-mono uppercase tracking-widest flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Real Atelier Works</span>
-                </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  By Priya Dixit
-                </span>
-              </div>
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 pt-2">
+            <button
+              onClick={onShopCandles}
+              className="px-8 py-4 bg-[#D4AF37] hover:bg-[#E5C358] text-stone-950 text-xs sm:text-sm font-semibold uppercase tracking-[0.18em] rounded-xl transition-all shadow-xl hover:shadow-2xl flex items-center justify-center gap-2 group cursor-pointer active:scale-95"
+            >
+              <span>Shop Real Creations</span>
+              <ArrowRight className="w-4 h-4 text-stone-950 group-hover:translate-x-1 transition-transform" />
+            </button>
 
-              {/* 3 Real Product Snapshots from user's authentic creations */}
-              <div className="grid grid-cols-3 gap-2 pt-1">
-                <div
-                  onClick={() => onExploreCollection('Diffusers & Home Accents')}
-                  className="group relative aspect-square rounded-xl overflow-hidden border border-white/15 cursor-pointer bg-stone-900"
-                >
-                  <img
-                    src={PRODUCT_ASSETS.flutedMarbledTrayDuo}
-                    alt="Marbled Mint Tray Duo"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src = '/products/fluted-marbled-tray-duo.jpg';
-                    }}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-1.5">
-                    <span className="text-[9px] text-white font-medium truncate">Marbled Tray</span>
-                  </div>
-                </div>
-
-                <div
-                  onClick={() => onExploreCollection('Sculptural Candles')}
-                  className="group relative aspect-square rounded-xl overflow-hidden border border-white/15 cursor-pointer bg-stone-900"
-                >
-                  <img
-                    src={PRODUCT_ASSETS.teddyBabyShower}
-                    alt="Teddy Lotus Candle"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src = '/products/teddy-baby-shower.jpg';
-                    }}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-1.5">
-                    <span className="text-[9px] text-white font-medium truncate">Teddy Lotus</span>
-                  </div>
-                </div>
-
-                <div
-                  onClick={() => onExploreCollection('Jar & Container Candles')}
-                  className="group relative aspect-square rounded-xl overflow-hidden border border-white/15 cursor-pointer bg-stone-900"
-                >
-                  <img
-                    src={PRODUCT_ASSETS.flutedCarouselJar}
-                    alt="Carousel Keepsake Jar"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src = '/products/fluted-carousel-jar.jpg';
-                    }}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-1.5">
-                    <span className="text-[9px] text-white font-medium truncate">Carousel Jar</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2 flex items-center justify-between text-[11px] text-stone-300">
-                <span className="flex items-center gap-1 text-emerald-400">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Real Photo Catalog</span>
-                </span>
-                <button
-                  onClick={() => onExploreCollection()}
-                  className="text-amber-300 hover:text-amber-200 underline font-medium cursor-pointer"
-                >
-                  Browse all 16 items →
-                </button>
-              </div>
-            </div>
+            <button
+              onClick={() => {
+                if (heroMode === 'video') {
+                  onExploreCollection('Diffusers & Home Accents');
+                } else {
+                  onExploreCollection(slide.category);
+                }
+              }}
+              className="px-8 py-4 bg-white/10 hover:bg-white/20 text-[#FAF8F5] border border-white/30 hover:border-white/60 text-xs sm:text-sm font-semibold uppercase tracking-[0.18em] rounded-xl backdrop-blur-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+            >
+              <Flame className="w-4 h-4 text-amber-300" />
+              <span>Explore Jesmonite & Trays</span>
+            </button>
           </div>
 
+          {/* Atelier Pillars / Micro Metrics */}
+          <div className="pt-6 border-t border-white/15 grid grid-cols-3 gap-3 sm:gap-6 text-left max-w-lg">
+            {heroMode === 'video' ? (
+              <>
+                <div className="space-y-0.5">
+                  <span className="font-editorial text-lg sm:text-2xl text-amber-300 font-normal">
+                    100% Soy
+                  </span>
+                  <p className="text-[10px] sm:text-xs text-stone-300 font-light leading-tight">
+                    Zero toxins, soot-free burn
+                  </p>
+                </div>
+                <div className="space-y-0.5">
+                  <span className="font-editorial text-lg sm:text-2xl text-amber-300 font-normal">
+                    Handmade
+                  </span>
+                  <p className="text-[10px] sm:text-xs text-stone-300 font-light leading-tight">
+                    Cast & cured in small batches
+                  </p>
+                </div>
+                <div className="space-y-0.5">
+                  <span className="font-editorial text-lg sm:text-2xl text-amber-300 font-normal">
+                    Crackling
+                  </span>
+                  <p className="text-[10px] sm:text-xs text-stone-300 font-light leading-tight">
+                    Natural FSC-certified wood wicks
+                  </p>
+                </div>
+              </>
+            ) : (
+              slide.stats.map((st, i) => (
+                <div key={i} className="space-y-0.5">
+                  <span className="font-editorial text-base sm:text-xl text-amber-300 font-normal">
+                    {st.value}
+                  </span>
+                  <p className="text-[10px] sm:text-xs text-stone-300 font-light leading-tight">
+                    {st.label}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
 

@@ -15,8 +15,7 @@ import { ReviewsSection } from './components/ReviewsSection';
 import { BrandAtelierSection } from './components/BrandAtelierSection';
 import { Footer } from './components/Footer';
 
-// Catalog & Modals
-import { CategoryFilter, PriceRange } from './components/CategoryFilter';
+// Modals & Navigation
 import { ProductCard } from './components/ProductCard';
 import { ProductDetailModal } from './components/ProductDetailModal';
 import { CartDrawer } from './components/CartDrawer';
@@ -38,7 +37,7 @@ import { AuraCollectionCircles } from './components/AuraCollectionCircles';
 
 import { Product, CartItem, VesselColor, WickType, CandleSize, FragranceFamily, Order, UserProfile } from './types';
 import { CandleApiService } from './services/api';
-import { Flame, CheckCircle2, Wand2, ArrowRight, Sparkles, RefreshCw } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Sparkles, RefreshCw } from 'lucide-react';
 
 const CART_STORAGE_KEY = 'auradecor_cart_v3';
 
@@ -54,13 +53,8 @@ export default function App() {
   const [authInitialMode, setAuthInitialMode] = useState<'login' | 'register' | 'admin'>('login');
   const [isOrderHistoryOpen, setIsOrderHistoryOpen] = useState(false);
 
-  // Filters & Sorting for full catalog
+  // Selected Category filter
   const [selectedCategory, setSelectedCategory] = useState<string>('All Creations');
-  const [selectedFamily, setSelectedFamily] = useState<FragranceFamily>('All');
-  const [priceRange, setPriceRange] = useState<PriceRange>('all');
-  const [inStockOnly, setInStockOnly] = useState<boolean>(false);
-  const [catalogSearch, setCatalogSearch] = useState<string>('');
-  const [sortBy, setSortBy] = useState<'featured' | 'newest' | 'price-asc' | 'price-desc' | 'rating'>('featured');
 
   // Shopping Bag & Wishlist
   const [cartItems, setCartItems] = useState<CartItem[]>(() => {
@@ -104,41 +98,17 @@ export default function App() {
   const giftingSectionRef = useRef<HTMLDivElement>(null);
   const aboutSectionRef = useRef<HTMLDivElement>(null);
 
-  // Load products with all active filter dimensions
+  // Load products
   const fetchProducts = async () => {
     setLoading(true);
-
-    let minPrice: number | undefined;
-    let maxPrice: number | undefined;
-
-    if (priceRange === 'under-500') {
-      maxPrice = 500;
-    } else if (priceRange === '500-1000') {
-      minPrice = 500;
-      maxPrice = 1000;
-    } else if (priceRange === '1000-2000') {
-      minPrice = 1000;
-      maxPrice = 2000;
-    } else if (priceRange === 'above-2000') {
-      minPrice = 2000;
-    }
-
-    const data = await CandleApiService.getProducts({
-      category: selectedCategory,
-      fragranceFamily: selectedFamily,
-      search: catalogSearch,
-      minPrice,
-      maxPrice,
-      inStockOnly,
-      sortBy,
-    });
+    const data = await CandleApiService.getProducts();
     setProducts(data);
     setLoading(false);
   };
 
   useEffect(() => {
     fetchProducts();
-  }, [selectedCategory, selectedFamily, priceRange, inStockOnly, catalogSearch, sortBy]);
+  }, []);
 
   // Persist cart
   useEffect(() => {
@@ -310,11 +280,6 @@ export default function App() {
 
   const handleResetFilters = () => {
     setSelectedCategory('All Creations');
-    setSelectedFamily('All');
-    setPriceRange('all');
-    setInStockOnly(false);
-    setCatalogSearch('');
-    setSortBy('featured');
   };
 
   const handleScrollToHome = () => {
@@ -433,15 +398,16 @@ export default function App() {
       {/* 5. FEATURED PROMO / CATEGORY CARDS */}
       <FeaturedPromoSection onSelectCategory={handleCategoryCardClick} />
 
-      {/* 5. PRODUCT SHOWCASE: SHOP OUR FAVORITES (Tabs: New Arrivals / Best Sellers) */}
-      <FavoritesShowcaseSection
-        products={products}
-        wishlistIds={wishlistIds}
-        onToggleWishlist={handleToggleWishlist}
-        onQuickView={(p) => setSelectedProduct(p)}
-        onQuickAdd={handleQuickAdd}
-        onViewAllCatalog={handleScrollToShop}
-      />
+      {/* 5. PRODUCT SHOWCASE: SHOP OUR CREATIONS */}
+      <div ref={shopSectionRef} id="shop">
+        <FavoritesShowcaseSection
+          products={products}
+          wishlistIds={wishlistIds}
+          onToggleWishlist={handleToggleWishlist}
+          onQuickView={(p) => setSelectedProduct(p)}
+          onQuickAdd={handleQuickAdd}
+        />
+      </div>
 
       {/* 6. EDITORIAL STORY SECTION */}
       <StorySections
@@ -464,113 +430,7 @@ export default function App() {
         onOpenCustomHamper={() => setIsGiftBuilderOpen(true)}
       />
 
-      {/* 11. COMPLETE CATALOG & FILTER ENGINE */}
-      <section ref={shopSectionRef} id="catalog" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 space-y-10 w-full border-t border-stone-200/80">
-        <div className="text-center max-w-2xl mx-auto space-y-2">
-          <span className="text-[11px] uppercase tracking-[0.25em] font-semibold text-amber-800 dark:text-amber-400">
-            Complete Artisan Collection
-          </span>
-          <h2 className="font-editorial text-3xl sm:text-4xl md:text-5xl font-light text-stone-900 dark:text-stone-100 leading-tight">
-            Explore All Creations
-          </h2>
-          <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-400 font-light leading-relaxed">
-            Filter by scent family, price point, stock availability, or burn time to find the ideal match for your sacred space.
-          </p>
-        </div>
-
-        {/* Enhanced Filter Controls */}
-        <CategoryFilter
-          selectedCategory={selectedCategory}
-          onSelectCategory={setSelectedCategory}
-          selectedFamily={selectedFamily}
-          onSelectFamily={setSelectedFamily}
-          priceRange={priceRange}
-          onPriceRangeChange={setPriceRange}
-          inStockOnly={inStockOnly}
-          onInStockToggle={setInStockOnly}
-          searchTerm={catalogSearch}
-          onSearchChange={setCatalogSearch}
-          sortBy={sortBy}
-          onSortChange={setSortBy}
-          totalResults={products.length}
-          onResetFilters={handleResetFilters}
-        />
-
-        {/* Dynamic Interactive Atelier Scent Bar Invitation */}
-        <div className="bg-gradient-to-r from-[#282320] via-[#362D28] to-[#25201D] text-stone-100 p-5 sm:p-6 rounded-3xl border border-amber-600/30 shadow-md flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-300">
-              <Wand2 className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-editorial text-base sm:text-lg text-white font-normal">
-                  Interactive Scent Laboratory
-                </span>
-                <span className="text-[9px] uppercase font-mono tracking-widest text-amber-300 bg-amber-500/20 px-1.5 py-0.5 rounded-full border border-amber-500/30 font-semibold">
-                  Live Customizer
-                </span>
-              </div>
-              <p className="text-xs text-stone-300 mt-0.5">
-                Blend your own custom Top, Heart, &amp; Base botanical pyramid with bespoke personalized label lettering.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <button
-              onClick={() => setIsCustomBlenderOpen(true)}
-              className="w-full sm:w-auto px-5 py-2.5 bg-amber-100 hover:bg-white text-stone-950 text-xs font-semibold uppercase tracking-wider rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer"
-            >
-              <span>Launch Scent Lab</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Products Grid & States */}
-        {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 py-6">
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="bg-stone-100 dark:bg-stone-800/40 rounded-2xl p-4 animate-pulse space-y-4">
-                <div className="aspect-[4/3] bg-stone-200 dark:bg-stone-700/50 rounded-xl" />
-                <div className="h-4 bg-stone-200 dark:bg-stone-700/50 rounded w-3/4" />
-                <div className="h-3 bg-stone-200 dark:bg-stone-700/50 rounded w-1/2" />
-                <div className="h-8 bg-stone-200 dark:bg-stone-700/50 rounded-xl mt-4" />
-              </div>
-            ))}
-          </div>
-        ) : products.length === 0 ? (
-          <div className="py-24 text-center space-y-3 bg-stone-50/50 dark:bg-stone-900/30 rounded-3xl border border-dashed border-stone-300 dark:border-stone-800 p-8">
-            <Flame className="w-10 h-10 text-amber-500 mx-auto opacity-70 animate-bounce" />
-            <h3 className="font-editorial text-2xl text-stone-800 dark:text-stone-200">No creations found</h3>
-            <p className="text-xs text-stone-500 max-w-sm mx-auto">
-              No artisanal candles match your selected filters or search terms. Try clearing some criteria to explore our full atelier vault.
-            </p>
-            <button
-              onClick={handleResetFilters}
-              className="px-5 py-2.5 bg-amber-900 hover:bg-amber-950 text-white rounded-xl text-xs font-semibold uppercase tracking-wider transition-colors shadow-sm cursor-pointer"
-            >
-              Reset All Filters
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {products.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                isWishlisted={wishlistIds.includes(product.id)}
-                onToggleWishlist={handleToggleWishlist}
-                onQuickView={(p) => setSelectedProduct(p)}
-                onQuickAdd={handleQuickAdd}
-              />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* 13. REVIEWS & TESTIMONIALS */}
+      {/* 11. REVIEWS & TESTIMONIALS */}
       <ReviewsSection />
 
       {/* 14. BRAND STORY / ABOUT SECTION */}
@@ -603,7 +463,7 @@ export default function App() {
         onUpdateQuantity={handleUpdateQuantity}
         onRemoveItem={handleRemoveCartItem}
         onProceedToCheckout={() => setIsCheckoutOpen(true)}
-        onExploreCatalog={handleScrollToShop}
+        onExploreCreations={handleScrollToShop}
         couponCode={couponCode}
         onApplyCoupon={handleApplyCoupon}
       />

@@ -185,7 +185,7 @@ export class CandleApiService {
   }
 
   // =========================================================================
-  // PRODUCTS & CATALOG
+  // PRODUCTS & ARTISAN INVENTORY
   // =========================================================================
 
   static getStoredProducts(): Product[] {

@@ -9,10 +9,9 @@ interface FavoritesShowcaseSectionProps {
   onToggleWishlist: (id: string) => void;
   onQuickView: (product: Product) => void;
   onQuickAdd: (product: Product) => void;
-  onViewAllCatalog: () => void;
 }
 
-type TabType = 'best-sellers' | 'pillars-jars' | 'floating-festive' | 'gift-hampers';
+type TabType = 'all' | 'best-sellers' | 'pillars-jars' | 'floating-festive' | 'gift-hampers';
 
 export const FavoritesShowcaseSection: React.FC<FavoritesShowcaseSectionProps> = ({
   products,
@@ -20,17 +19,25 @@ export const FavoritesShowcaseSection: React.FC<FavoritesShowcaseSectionProps> =
   onToggleWishlist,
   onQuickView,
   onQuickAdd,
-  onViewAllCatalog,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('best-sellers');
+  const [showAllInTab, setShowAllInTab] = useState(false);
 
   // Filter based on active tab
   const displayedProducts = products.filter((p) => {
+    if (activeTab === 'all') {
+      return true;
+    }
     if (activeTab === 'best-sellers') {
       return p.isBestSeller;
     }
     if (activeTab === 'pillars-jars') {
-      return p.category === 'Pillar Candles' || p.category === 'Jar & Container Candles' || p.category === 'Gift Candles' || p.category === 'Scented Candles';
+      return (
+        p.category === 'Pillar Candles' ||
+        p.category === 'Jar & Container Candles' ||
+        p.category === 'Gift Candles' ||
+        p.category === 'Scented Candles'
+      );
     }
     if (activeTab === 'floating-festive') {
       return p.category === 'Floating & Urli Sets' || p.category === 'Decorative Candles';
@@ -41,8 +48,7 @@ export const FavoritesShowcaseSection: React.FC<FavoritesShowcaseSectionProps> =
     return true;
   });
 
-  // Take top 4 or fallback to first 4
-  const finalProducts = displayedProducts.length > 0 ? displayedProducts.slice(0, 4) : products.slice(0, 4);
+  const finalProducts = showAllInTab ? displayedProducts : displayedProducts.slice(0, 8);
 
   return (
     <section className="py-20 sm:py-28 bg-[#FAF7F2]">
@@ -50,19 +56,23 @@ export const FavoritesShowcaseSection: React.FC<FavoritesShowcaseSectionProps> =
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto space-y-3">
           <div className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.25em] text-amber-900">
-            <span>BlossomGlow Bestsellers</span>
+            <Sparkles className="w-3.5 h-3.5 text-amber-700" />
+            <span>BlossomGlow Creations</span>
           </div>
           <h2 className="font-editorial text-3xl sm:text-4xl md:text-5xl font-light text-stone-900 leading-tight">
-            Shop Our Favorites
+            Artisanal Candle Creations
           </h2>
           <p className="text-xs sm:text-sm text-stone-600 font-light leading-relaxed">
-            Discover the creations our customers love most. Crafted for clean, smokeless burn and infused with pure essential oils to awaken your senses.
+            Discover the creations crafted for a clean, smokeless burn and infused with pure essential oils to awaken your senses.
           </p>
 
           {/* Tab buttons */}
           <div className="pt-4 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
             <button
-              onClick={() => setActiveTab('best-sellers')}
+              onClick={() => {
+                setActiveTab('best-sellers');
+                setShowAllInTab(false);
+              }}
               className={`px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
                 activeTab === 'best-sellers'
                   ? 'bg-[#161311] text-amber-300 shadow-md'
@@ -72,7 +82,23 @@ export const FavoritesShowcaseSection: React.FC<FavoritesShowcaseSectionProps> =
               Bestselling Candles
             </button>
             <button
-              onClick={() => setActiveTab('pillars-jars')}
+              onClick={() => {
+                setActiveTab('all');
+                setShowAllInTab(false);
+              }}
+              className={`px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
+                activeTab === 'all'
+                  ? 'bg-[#161311] text-amber-300 shadow-md'
+                  : 'bg-white text-stone-600 hover:bg-stone-100 hover:text-stone-900 border border-stone-200'
+              }`}
+            >
+              All Creations
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('pillars-jars');
+                setShowAllInTab(false);
+              }}
               className={`px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
                 activeTab === 'pillars-jars'
                   ? 'bg-[#161311] text-amber-300 shadow-md'
@@ -82,7 +108,10 @@ export const FavoritesShowcaseSection: React.FC<FavoritesShowcaseSectionProps> =
               Pillars &amp; Jars
             </button>
             <button
-              onClick={() => setActiveTab('floating-festive')}
+              onClick={() => {
+                setActiveTab('floating-festive');
+                setShowAllInTab(false);
+              }}
               className={`px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
                 activeTab === 'floating-festive'
                   ? 'bg-[#161311] text-amber-300 shadow-md'
@@ -92,7 +121,10 @@ export const FavoritesShowcaseSection: React.FC<FavoritesShowcaseSectionProps> =
               Floating &amp; Urli Sets
             </button>
             <button
-              onClick={() => setActiveTab('gift-hampers')}
+              onClick={() => {
+                setActiveTab('gift-hampers');
+                setShowAllInTab(false);
+              }}
               className={`px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
                 activeTab === 'gift-hampers'
                   ? 'bg-[#161311] text-amber-300 shadow-md'
@@ -118,16 +150,18 @@ export const FavoritesShowcaseSection: React.FC<FavoritesShowcaseSectionProps> =
           ))}
         </div>
 
-        {/* View All Button */}
-        <div className="text-center pt-6">
-          <button
-            onClick={onViewAllCatalog}
-            className="px-8 py-3.5 bg-stone-900 hover:bg-black text-amber-300 text-xs font-semibold uppercase tracking-widest rounded-xl transition-all shadow-md hover:shadow-lg inline-flex items-center gap-2 group cursor-pointer active:scale-95"
-          >
-            <span>EXPLORE ALL BLOSSOMGLOW CREATIONS</span>
-            <ArrowRight className="w-4 h-4 text-amber-300 group-hover:translate-x-1 transition-transform" />
-          </button>
-        </div>
+        {/* Optional Show More / Show Less Toggle when many products match */}
+        {displayedProducts.length > 8 && (
+          <div className="text-center pt-4">
+            <button
+              onClick={() => setShowAllInTab(!showAllInTab)}
+              className="px-6 py-2.5 border border-stone-400/80 hover:border-stone-900 bg-white hover:bg-stone-50 text-stone-800 text-xs font-semibold uppercase tracking-widest rounded-full transition-all shadow-2xs inline-flex items-center gap-2 cursor-pointer"
+            >
+              <span>{showAllInTab ? 'Show Less' : `View All (${displayedProducts.length} Creations)`}</span>
+              <ArrowRight className="w-3.5 h-3.5 text-stone-700" />
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );

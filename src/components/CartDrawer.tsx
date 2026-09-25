@@ -9,7 +9,7 @@ interface CartDrawerProps {
   onUpdateQuantity: (cartItemId: string, newQty: number) => void;
   onRemoveItem: (cartItemId: string) => void;
   onProceedToCheckout: () => void;
-  onExploreCatalog: () => void;
+  onExploreCreations?: () => void;
   couponCode: string;
   onApplyCoupon: (code: string) => boolean;
 }
@@ -21,7 +21,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onUpdateQuantity,
   onRemoveItem,
   onProceedToCheckout,
-  onExploreCatalog,
+  onExploreCreations,
   couponCode,
   onApplyCoupon,
 }) => {
@@ -114,7 +114,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 <button
                   onClick={() => {
                     onClose();
-                    onExploreCatalog();
+                    if (onExploreCreations) onExploreCreations();
                   }}
                   className="px-5 py-2.5 bg-[#262220] hover:bg-black text-white text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors"
                 >
