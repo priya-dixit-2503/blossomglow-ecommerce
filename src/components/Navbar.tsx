@@ -425,7 +425,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* CENTER: REORGANIZED CLEAN 5-ITEM LUXURY NAVIGATION WITH MEGA DROPDOWNS */}
-          <nav className="hidden lg:flex items-center gap-7 xl:gap-9 text-[13px] font-medium tracking-[0.14em] uppercase text-stone-800">
+          <nav className="hidden lg:flex items-center gap-6 xl:gap-8 text-[13px] font-medium tracking-[0.14em] uppercase text-stone-800 whitespace-nowrap shrink-0">
             {/* 1. SHOP MEGA MENU */}
             <div
               className="relative py-6"
@@ -995,11 +995,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           </nav>
 
           {/* RIGHT: COMPACT ICONS & ACTIONS (Search, Scent Quiz CTA, Wishlist, Sign In, Bag) */}
-          <div className="flex items-center gap-1 sm:gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             {/* Search Trigger */}
             <button
               onClick={onOpenSearch}
-              className="p-2.5 text-stone-700 hover:text-stone-950 hover:bg-stone-200/50 rounded-full transition-colors cursor-pointer"
+              className="p-2.5 text-stone-700 hover:text-stone-950 hover:bg-stone-200/50 rounded-full transition-colors cursor-pointer shrink-0"
               aria-label="Search creations"
               title="Search candles, scents & gifts"
             >
@@ -1010,18 +1010,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             {onOpenScentQuiz && (
               <button
                 onClick={onOpenScentQuiz}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-amber-600/25 bg-amber-500/10 hover:bg-amber-500/20 text-amber-900 transition-all text-[11px] font-semibold tracking-wider uppercase cursor-pointer hover:shadow-2xs active:scale-95"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-amber-600/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-900 transition-all text-[11px] font-semibold tracking-wider uppercase cursor-pointer hover:shadow-2xs active:scale-95 whitespace-nowrap shrink-0"
                 title="Discover your personalized botanical candle aura"
               >
-                <Sparkles className="w-3.5 h-3.5 text-amber-700" />
-                <span>Scent Quiz</span>
+                <Sparkles className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                <span className="whitespace-nowrap">Scent Quiz</span>
               </button>
             )}
 
             {/* Wishlist Button with Counter */}
             <button
               onClick={onOpenWishlist}
-              className="p-2.5 text-stone-700 hover:text-stone-950 hover:bg-stone-200/50 rounded-full transition-colors relative cursor-pointer"
+              className="p-2.5 text-stone-700 hover:text-stone-950 hover:bg-stone-200/50 rounded-full transition-colors relative cursor-pointer shrink-0"
               aria-label="Wishlist"
               title="Saved Favorites"
             >
@@ -1034,20 +1034,20 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             {/* User Account / Sign In Dropdown */}
-            <div className="relative" ref={userDropdownRef}>
+            <div className="relative shrink-0" ref={userDropdownRef}>
               {currentUser ? (
                 <div>
                   <button
                     onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                    className="flex items-center gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-full border border-stone-300/80 hover:border-amber-700/60 bg-white/70 hover:bg-white transition-all text-xs font-medium cursor-pointer shadow-2xs"
+                    className="flex items-center gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-full border border-stone-300/80 hover:border-amber-700/60 bg-white/70 hover:bg-white transition-all text-xs font-medium cursor-pointer shadow-2xs whitespace-nowrap"
                   >
-                    <div className="w-6 h-6 rounded-full bg-[#29221C] text-amber-200 flex items-center justify-center font-bold text-[11px]">
+                    <div className="w-6 h-6 rounded-full bg-[#29221C] text-amber-200 flex items-center justify-center font-bold text-[11px] shrink-0">
                       {currentUser.fullName ? currentUser.fullName[0].toUpperCase() : 'U'}
                     </div>
                     <span className="hidden md:inline text-stone-800 max-w-[80px] truncate font-medium">
                       {currentUser.fullName.split(' ')[0]}
                     </span>
-                    <ChevronDown className="w-3.5 h-3.5 text-stone-500" />
+                    <ChevronDown className="w-3.5 h-3.5 text-stone-500 shrink-0" />
                   </button>
 
                   {/* Dropdown Menu */}
@@ -1122,11 +1122,11 @@ export const Navbar: React.FC<NavbarProps> = ({
               ) : (
                 <button
                   onClick={() => onOpenAuth && onOpenAuth('login')}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-stone-300 hover:border-amber-700 text-stone-700 hover:text-amber-900 hover:bg-stone-50 transition-colors text-xs font-medium cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-stone-300 hover:border-amber-700 text-stone-700 hover:text-amber-900 hover:bg-stone-50 transition-colors text-xs font-medium cursor-pointer whitespace-nowrap shrink-0"
                   title="Sign In to BlossomGlow"
                 >
-                  <User className="w-4 h-4" />
-                  <span className="hidden sm:inline">Sign In</span>
+                  <User className="w-4 h-4 shrink-0" />
+                  <span className="hidden sm:inline whitespace-nowrap">Sign In</span>
                 </button>
               )}
             </div>
@@ -1134,11 +1134,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Shopping Bag: Chic Deep Espresso Obsidian & Golden Accent */}
             <button
               onClick={onOpenCart}
-              className="p-2 sm:px-3.5 sm:py-2 text-[#FAF8F5] bg-[#1C1815] hover:bg-[#2A231E] rounded-full transition-all flex items-center gap-2 shadow-sm hover:shadow-md cursor-pointer active:scale-95 group ml-1"
+              className="p-2 sm:px-3.5 sm:py-2 text-[#FAF8F5] bg-[#1C1815] hover:bg-[#2A231E] rounded-full transition-all flex items-center gap-2 shadow-sm hover:shadow-md cursor-pointer active:scale-95 group ml-1 shrink-0 whitespace-nowrap"
               aria-label="Shopping Cart"
               title="View Shopping Bag"
             >
-              <div className="relative">
+              <div className="relative shrink-0">
                 <ShoppingBag className="w-4.5 h-4.5 text-amber-300 group-hover:scale-105 transition-transform" />
                 {cartCount > 0 && (
                   <span className="absolute -top-1.5 -right-2 w-4 h-4 bg-amber-400 text-stone-950 rounded-full text-[10px] font-bold flex items-center justify-center shadow-xs">
@@ -1146,7 +1146,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </span>
                 )}
               </div>
-              <span className="hidden sm:inline text-xs font-semibold tracking-wider uppercase text-amber-100">
+              <span className="hidden sm:inline text-xs font-semibold tracking-wider uppercase text-amber-100 whitespace-nowrap">
                 Bag
               </span>
             </button>
