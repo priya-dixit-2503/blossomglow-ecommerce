@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Package, Clock, Truck, CheckCircle2, ChevronRight, Search, ExternalLink, Calendar, MapPin } from 'lucide-react';
 import { CandleApiService } from '../services/api';
 import { Order, OrderStatus } from '../types';
+import { resolveImage } from '../utils/productNormalizer';
 
 interface OrderHistoryModalProps {
   isOpen: boolean;
@@ -156,8 +157,11 @@ export const OrderHistoryModal: React.FC<OrderHistoryModalProps> = ({
                     <div key={idx} className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
                         <img
-                          src={item.product.image}
+                          src={resolveImage(item.product.image || (item.product as any)?.imageUrl, item.product.id, item.product.name)}
                           alt={item.product.name}
+                          onError={(e) => {
+                            e.currentTarget.src = '/products/floral-garden.jpg';
+                          }}
                           className="w-9 h-9 object-cover rounded-lg border border-stone-200 dark:border-stone-700"
                         />
                         <div>

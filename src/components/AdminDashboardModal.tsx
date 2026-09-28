@@ -7,6 +7,7 @@ import {
 import { Product, Order, OrderStatus, ProductCategory } from '../types';
 import { CandleApiService } from '../services/api';
 import { PRODUCT_ASSETS } from '../assets/products';
+import { resolveImage } from '../utils/productNormalizer';
 
 interface AdminDashboardModalProps {
   isOpen: boolean;
@@ -555,7 +556,14 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                       <tr key={p.id} className="hover:bg-stone-50/70 transition-colors">
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-3">
-                            <img src={p.image} alt={p.name} className="w-10 h-10 rounded-xl object-cover border border-stone-200" />
+                            <img
+                              src={resolveImage(p.image || (p as any)?.imageUrl, p.id, p.name)}
+                              alt={p.name}
+                              onError={(e) => {
+                                e.currentTarget.src = '/products/floral-garden.jpg';
+                              }}
+                              className="w-10 h-10 rounded-xl object-cover border border-stone-200"
+                            />
                             <div>
                               <p className="font-semibold text-stone-900">{p.name}</p>
                               <span className="text-[10px] text-stone-400 font-mono">{p.id}</span>
@@ -641,7 +649,14 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                         <tr key={p.id} className="hover:bg-stone-50/70">
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-3">
-                              <img src={p.image} alt={p.name} className="w-10 h-10 rounded-xl object-cover border" />
+                              <img
+                                src={resolveImage(p.image || (p as any)?.imageUrl, p.id, p.name)}
+                                alt={p.name}
+                                onError={(e) => {
+                                  e.currentTarget.src = '/products/floral-garden.jpg';
+                                }}
+                                className="w-10 h-10 rounded-xl object-cover border"
+                              />
                               <div>
                                 <p className="font-semibold text-stone-900">{p.name}</p>
                                 <span className="font-mono text-[10px] text-stone-400">{p.id}</span>
@@ -831,7 +846,14 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
                         {ord.items.map((item, i) => (
                           <div key={i} className="bg-stone-50 p-2.5 rounded-xl border border-stone-100 flex items-center gap-2.5">
-                            <img src={item.product.image} alt={item.product.name} className="w-9 h-9 rounded-lg object-cover border" />
+                            <img
+                              src={resolveImage(item.product.image || (item.product as any)?.imageUrl, item.product.id, item.product.name)}
+                              alt={item.product.name}
+                              onError={(e) => {
+                                e.currentTarget.src = '/products/floral-garden.jpg';
+                              }}
+                              className="w-9 h-9 rounded-lg object-cover border"
+                            />
                             <div className="min-w-0">
                               <p className="font-medium text-stone-900 truncate">{item.product.name}</p>
                               <p className="text-[10px] text-stone-500">

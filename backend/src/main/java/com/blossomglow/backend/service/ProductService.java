@@ -122,6 +122,7 @@ public class ProductService {
                 .rating(p.getRating())
                 .reviewsCount(p.getReviewsCount())
                 .imageUrl(p.getImageUrl())
+                .galleryImages(p.getImageUrl() != null ? java.util.List.of(p.getImageUrl()) : java.util.List.of())
                 .burnTimeHours(p.getBurnTimeHours())
                 .weightGrams(p.getWeightGrams())
                 .scentIntensity(p.getScentIntensity())

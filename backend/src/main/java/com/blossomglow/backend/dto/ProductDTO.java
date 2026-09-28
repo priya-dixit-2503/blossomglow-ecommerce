@@ -1,11 +1,13 @@
 package com.blossomglow.backend.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Getter
 @Setter
@@ -25,6 +27,11 @@ public class ProductDTO {
     @NotBlank(message = "Category is required")
     private String categoryName;
 
+    @JsonProperty("category")
+    public String getCategory() {
+        return categoryName;
+    }
+
     @NotBlank(message = "Fragrance family is required")
     private String fragranceFamily;
 
@@ -38,6 +45,13 @@ public class ProductDTO {
 
     @NotBlank(message = "Image URL is required")
     private String imageUrl;
+
+    @JsonProperty("image")
+    public String getImage() {
+        return imageUrl;
+    }
+
+    private List<String> galleryImages;
 
     private Integer burnTimeHours;
     private Integer weightGrams;

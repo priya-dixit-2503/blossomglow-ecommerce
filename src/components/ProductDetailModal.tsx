@@ -3,6 +3,7 @@ import { X, Star, Flame, ShieldCheck, Heart, ShoppingBag, Check, Info, Sparkles,
 import { Product, VesselColor, WickType, CandleSize, Review } from '../types';
 import { ambientAudio } from '../utils/soundEffects';
 import { CandleApiService } from '../services/api';
+import { resolveImage } from '../utils/productNormalizer';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -48,9 +49,10 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
   useEffect(() => {
     if (product) {
-      setSelectedImage(product.image);
-      setSelectedVessel(product.availableVessels[0] || 'Fluted Ivory');
-      setSelectedWick(product.availableWicks[0] || 'Crackling Wood Wick');
+      const resolved = resolveImage(product.image || (product as any)?.imageUrl, product.id, product.name);
+      setSelectedImage(resolved);
+      setSelectedVessel(product.availableVessels?.[0] || 'Fluted Ivory');
+      setSelectedWick(product.availableWicks?.[0] || 'Crackling Wood Wick');
       CandleApiService.getReviewsForProduct(product.id).then((revs) => {
         setReviews(revs);
       });
@@ -108,7 +110,14 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     }
   };
 
-  const allImages = [product.image, ...(product.galleryImages || []).filter((img) => img !== product.image)];
+  const resolvedMainImage = resolveImage(product.image || (product as any)?.imageUrl, product.id, product.name);
+  const allImages = [
+    resolvedMainImage,
+    ...(product.galleryImages || [])
+      .filter((img) => img && typeof img === 'string')
+      .map((img) => resolveImage(img, product.id, product.name))
+      .filter((img) => img !== resolvedMainImage),
+  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-stone-950/70 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">

@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { MOCK_PRODUCTS, MOCK_REVIEWS } from '../data/mockProducts';
 import { Product, Review, Order, CustomerOrderInfo, CartItem, OrderStatus, ContactMessage, UserProfile, AuthResponse, FragranceFamily } from '../types';
+import { normalizeProduct } from '../utils/productNormalizer';
 
 const ORDERS_STORAGE_KEY = 'auradecor_orders_v3';
 const WISHLIST_STORAGE_KEY = 'auradecor_wishlist_v3';
@@ -194,28 +195,17 @@ export class CandleApiService {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // If stored products contain legacy broken raw paths like '/src/assets/...', update with fresh bundled images
-          const mockMap = new Map(MOCK_PRODUCTS.map((m) => [m.id, m]));
-          let updated = false;
-          const sanitized = parsed.map((p: Product) => {
-            const mock = mockMap.get(p.id);
-            if (mock && (p.image?.startsWith('/src/') || !p.image)) {
-              updated = true;
-              return { ...p, image: mock.image, galleryImages: mock.galleryImages };
-            }
-            return p;
-          });
-          if (updated) {
-            this.saveStoredProducts(sanitized);
-          }
+          const sanitized = parsed.map(normalizeProduct);
+          this.saveStoredProducts(sanitized);
           return sanitized;
         }
       }
     } catch {
       // ignore
     }
-    localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(MOCK_PRODUCTS));
-    return [...MOCK_PRODUCTS];
+    const defaultList = MOCK_PRODUCTS.map(normalizeProduct);
+    localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(defaultList));
+    return defaultList;
   }
 
   static saveStoredProducts(products: Product[]): void {
@@ -237,7 +227,7 @@ export class CandleApiService {
   }): Promise<Product[]> {
     // 1. Attempt live Spring Boot REST API
     try {
-      const response = await axiosClient.get<Product[]>('/products', {
+      const response = await axiosClient.get<any[]>('/products', {
         params: {
           category: params?.category && params.category !== 'All Creations' && params.category !== 'All' ? params.category : undefined,
           fragranceFamily: params?.fragranceFamily && params.fragranceFamily !== 'All' ? params.fragranceFamily : undefined,
@@ -246,7 +236,8 @@ export class CandleApiService {
       });
       if (response.data && Array.isArray(response.data) && response.data.length > 0) {
         this.isBackendLive = true;
-        let apiResults = [...response.data];
+        // Normalize backend DTO items (ensures image, galleryImages, category, types are solid)
+        let apiResults = response.data.map(normalizeProduct);
 
         // Apply client filters if backend returned full set
         if (params?.minPrice !== undefined) {
@@ -325,8 +316,8 @@ export class CandleApiService {
 
   static async getProductById(id: string): Promise<Product | undefined> {
     try {
-      const response = await axiosClient.get<Product>(`/products/${id}`);
-      if (response.data) return response.data;
+      const response = await axiosClient.get<any>(`/products/${id}`);
+      if (response.data) return normalizeProduct(response.data);
     } catch {
       // fallback
     }

@@ -20,8 +20,12 @@ export const ProductImageCarousel: React.FC<ProductImageCarouselProps> = ({
   isParentHovered = false,
   onImageClick,
 }) => {
-  // Ensure we always have at least one image
-  const validImages = images && images.length > 0 ? images : ['/src/assets/images/wooden_dough_bowl_1790142271592.jpg'];
+  // Ensure we always have only valid, non-empty string image URLs
+  const validImages = React.useMemo(() => {
+    const list = (images || []).filter((img) => typeof img === 'string' && img.trim().length > 0);
+    return list.length > 0 ? list : ['/products/floral-garden.jpg'];
+  }, [images]);
+
   const hasMultiple = validImages.length > 1;
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -133,7 +137,21 @@ export const ProductImageCarousel: React.FC<ProductImageCarouselProps> = ({
     touchCurrentXRef.current = null;
   };
 
-  const handleImageError = (imgSrc: string) => {
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>, imgSrc: string) => {
+    const target = e.currentTarget;
+    // Attempt fallback from /src/assets/products/ to /products/
+    if (target.src.includes('/src/assets/products/')) {
+      const filename = target.src.split('/').pop()?.split('?')[0];
+      if (filename) {
+        target.src = `/products/${filename}`;
+        return;
+      }
+    }
+    // Attempt fallback to default floral-garden if another path broke
+    if (!target.src.includes('floral-garden.jpg')) {
+      target.src = '/products/floral-garden.jpg';
+      return;
+    }
     setFailedImages((prev) => ({ ...prev, [imgSrc]: true }));
   };
 
@@ -167,7 +185,7 @@ export const ProductImageCarousel: React.FC<ProductImageCarouselProps> = ({
                   referrerPolicy="no-referrer"
                   loading={index === 0 ? 'eager' : 'lazy'}
                   draggable={false}
-                  onError={() => handleImageError(src)}
+                  onError={(e) => handleImageError(e, src)}
                   className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
                 />
               ) : (

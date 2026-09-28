@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Gift, Check, Sparkles, ShoppingBag, Plus } from 'lucide-react';
 import { Product, CartItem } from '../types';
 import { MOCK_PRODUCTS } from '../data/mockProducts';
+import { resolveImage } from '../utils/productNormalizer';
 
 interface GiftHamperBuilderModalProps {
   isOpen: boolean;
@@ -141,7 +142,14 @@ export const GiftHamperBuilderModal: React.FC<GiftHamperBuilderModalProps> = ({
                     }`}
                   >
                     <div className="aspect-square rounded-lg overflow-hidden mb-2 bg-stone-100">
-                      <img src={candle.image} alt={candle.name} className="w-full h-full object-cover" />
+                      <img
+                        src={resolveImage(candle.image, candle.id, candle.name)}
+                        alt={candle.name}
+                        onError={(e) => {
+                          e.currentTarget.src = '/products/floral-garden.jpg';
+                        }}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                     <div>
                       <span className="text-[11px] font-medium text-stone-900 block line-clamp-1">

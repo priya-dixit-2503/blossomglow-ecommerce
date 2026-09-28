@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Search, ArrowRight } from 'lucide-react';
 import { Product } from '../types';
 import { CandleApiService } from '../services/api';
+import { resolveImage } from '../utils/productNormalizer';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -95,9 +96,12 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 className="w-full text-left p-3 rounded-xl hover:bg-stone-50 transition-colors flex items-center gap-4 group border border-transparent hover:border-stone-200"
               >
                 <img
-                  src={product.image}
+                  src={resolveImage(product.image || (product as any)?.imageUrl, product.id, product.name)}
                   alt={product.name}
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    e.currentTarget.src = '/products/floral-garden.jpg';
+                  }}
                   className="w-14 h-14 rounded-lg object-cover bg-stone-100 shrink-0"
                 />
                 <div className="flex-1">

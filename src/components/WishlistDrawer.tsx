@@ -2,6 +2,7 @@ import React from 'react';
 import { X, Heart, ShoppingBag, Trash2, ArrowRight } from 'lucide-react';
 import { Product } from '../types';
 import { MOCK_PRODUCTS } from '../data/mockProducts';
+import { resolveImage } from '../utils/productNormalizer';
 
 interface WishlistDrawerProps {
   isOpen: boolean;
@@ -73,9 +74,12 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
                   className="flex gap-4 p-3 rounded-xl border border-stone-100 hover:border-stone-200 transition-colors bg-stone-50/50"
                 >
                   <img
-                    src={product.image}
+                    src={resolveImage(product.image || (product as any)?.imageUrl, product.id, product.name)}
                     alt={product.name}
                     referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      e.currentTarget.src = '/products/floral-garden.jpg';
+                    }}
                     onClick={() => {
                       onSelectProduct(product);
                       onClose();

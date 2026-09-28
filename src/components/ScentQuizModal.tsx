@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Sparkles, ArrowRight, RotateCcw, Check, ShoppingBag } from 'lucide-react';
 import { Product } from '../types';
 import { CandleApiService } from '../services/api';
+import { resolveImage } from '../utils/productNormalizer';
 
 interface ScentQuizModalProps {
   isOpen: boolean;
@@ -212,8 +213,11 @@ export const ScentQuizModal: React.FC<ScentQuizModalProps> = ({
 
               <div className="flex flex-col sm:flex-row items-center gap-5 p-4 rounded-xl bg-[#FAF8F5] border border-stone-200 text-left">
                 <img
-                  src={recommendedProduct.image}
+                  src={resolveImage(recommendedProduct.image || (recommendedProduct as any)?.imageUrl, recommendedProduct.id, recommendedProduct.name)}
                   alt={recommendedProduct.name}
+                  onError={(e) => {
+                    e.currentTarget.src = '/products/floral-garden.jpg';
+                  }}
                   className="w-28 h-28 sm:w-32 sm:h-32 rounded-lg object-cover bg-stone-100 shrink-0"
                 />
                 <div className="space-y-1.5">

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, ShoppingBag, Trash2, ArrowRight, Sparkles, Check, Tag } from 'lucide-react';
 import { CartItem } from '../types';
+import { resolveImage } from '../utils/productNormalizer';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -128,9 +129,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   className="flex gap-4 p-3 rounded-xl border border-stone-100 hover:border-stone-200 transition-colors bg-stone-50/50"
                 >
                   <img
-                    src={item.product.image}
+                    src={resolveImage(item.product.image || (item.product as any)?.imageUrl, item.product.id, item.product.name)}
                     alt={item.product.name}
                     referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      e.currentTarget.src = '/products/floral-garden.jpg';
+                    }}
                     className="w-20 h-20 rounded-lg object-cover bg-stone-100 shrink-0"
                   />
                   <div className="flex-1 flex flex-col justify-between">

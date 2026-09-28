@@ -3,6 +3,7 @@ import { Heart, Eye, ShoppingBag, Flame, Star, Check, AlertCircle } from 'lucide
 import { Product } from '../types';
 import { ProductImageCarousel } from './ProductImageCarousel';
 import { ambientAudio } from '../utils/soundEffects';
+import { resolveImage } from '../utils/productNormalizer';
 
 interface ProductCardProps {
   product: Product;
@@ -24,16 +25,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [isPopping, setIsPopping] = useState(false);
   const [isCardPopping, setIsCardPopping] = useState(false);
 
-  // Collect all available gallery images, guaranteeing product.image is included
+  // Collect all available gallery images, guaranteeing product.image is included and resolved
   const allImages = React.useMemo(() => {
+    const primaryImg = resolveImage(
+      product.image || (product as any)?.imageUrl,
+      product.id,
+      product.name
+    );
     if (product.galleryImages && product.galleryImages.length > 0) {
-      if (!product.galleryImages.includes(product.image)) {
-        return [product.image, ...product.galleryImages];
+      const valid = product.galleryImages
+        .filter((img) => typeof img === 'string' && img.trim().length > 0)
+        .map((img) => resolveImage(img, product.id, product.name));
+      if (!valid.includes(primaryImg)) {
+        return [primaryImg, ...valid];
       }
-      return product.galleryImages;
+      return valid;
     }
-    return [product.image];
-  }, [product.image, product.galleryImages]);
+    return [primaryImg];
+  }, [product.image, (product as any)?.imageUrl, product.id, product.name, product.galleryImages]);
 
   const discountPercent =
     product.originalPrice && product.originalPrice > product.price
