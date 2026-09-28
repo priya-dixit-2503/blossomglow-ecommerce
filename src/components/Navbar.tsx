@@ -32,6 +32,7 @@ import { ANNOUNCEMENT_CONFIG } from '../config/announcements';
 import { UserProfile } from '../types';
 import { CandleApiService } from '../services/api';
 import { BlossomGlowLogo } from './BlossomGlowLogo';
+import { CollectionsDropdownMenu } from './CollectionsDropdownMenu';
 
 interface NavbarProps {
   cartCount: number;
@@ -47,17 +48,17 @@ interface NavbarProps {
   onOpenScentQuiz?: () => void;
   onOpenCareGuide?: () => void;
   onOpenCustomBlender?: () => void;
+  onOpenGiftBuilder?: () => void;
   onOpenAuth?: (mode?: 'login' | 'register' | 'admin') => void;
   onOpenOrderHistory?: () => void;
   onLogout?: () => void;
   onNavigateToHome: () => void;
+  onNavigateToNewArrivals?: () => void;
   onNavigateToShop: (category?: string) => void;
   onNavigateToCollections: () => void;
   onNavigateToAbout: () => void;
   onNavigateToGifting: () => void;
 }
-
-type ActiveDropdown = 'shop' | 'collections' | 'gifts' | 'custom' | 'story' | null;
 
 export const Navbar: React.FC<NavbarProps> = ({
   cartCount,
@@ -73,24 +74,24 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenScentQuiz,
   onOpenCareGuide,
   onOpenCustomBlender,
+  onOpenGiftBuilder,
   onOpenAuth,
   onOpenOrderHistory,
   onLogout,
   onNavigateToHome,
+  onNavigateToNewArrivals,
   onNavigateToShop,
   onNavigateToCollections,
   onNavigateToAbout,
   onNavigateToGifting,
 }) => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isCollectionsOpen, setIsCollectionsOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [activeAnnouncementIdx, setActiveAnnouncementIdx] = useState(0);
   const [isBackendConnected, setIsBackendConnected] = useState<boolean | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
-  // Accordion state for mobile menu
-  const [mobileExpandedSection, setMobileExpandedSection] = useState<ActiveDropdown>('shop');
-
+  const collectionsMenuRef = useRef<HTMLDivElement>(null);
   const navContainerRef = useRef<HTMLDivElement>(null);
   const userDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -121,6 +122,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   // Click outside & Escape key listeners
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
+      if (collectionsMenuRef.current && !collectionsMenuRef.current.contains(e.target as Node)) {
+        setIsCollectionsOpen(false);
+      }
       if (userDropdownRef.current && !userDropdownRef.current.contains(e.target as Node)) {
         setUserDropdownOpen(false);
       }
@@ -128,8 +132,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        setIsCollectionsOpen(false);
         setUserDropdownOpen(false);
-        setMobileMenuOpen(false);
       }
     };
 
@@ -142,8 +146,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, []);
 
   const closeAllMenus = () => {
+    setIsCollectionsOpen(false);
     setUserDropdownOpen(false);
-    setMobileMenuOpen(false);
   };
 
   const currentAnnouncement =
@@ -403,23 +407,8 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-amber-500/25 to-transparent pointer-events-none" />
 
         <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-10 h-20 sm:h-[88px] flex items-center justify-between">
-          {/* FAR LEFT CORNER: Navigation Drawer Toggle Button shifted to the left corner, followed by Brand Logo */}
-          <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
-            {/* Navigation Drawer Toggle Button - Shifted to the far left corner */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 sm:p-2.5 text-stone-700 hover:text-stone-950 hover:bg-stone-200/60 rounded-xl focus:outline-none transition-all flex items-center justify-center cursor-pointer border border-stone-300/80 bg-white/70 hover:bg-white shadow-2xs group shrink-0"
-              aria-label="Toggle navigation drawer"
-              title={mobileMenuOpen ? 'Close Navigation Drawer' : 'Open Navigation Drawer'}
-            >
-              {mobileMenuOpen ? (
-                <X className="w-5 h-5 text-stone-900 group-hover:scale-110 transition-transform" />
-              ) : (
-                <Menu className="w-5 h-5 text-stone-800 group-hover:scale-110 transition-transform" />
-              )}
-            </button>
-
-            {/* Official Brand Logo */}
+          {/* LEFT: Official Brand Logo */}
+          <div className="flex items-center shrink-0">
             <button
               onClick={() => {
                 closeAllMenus();
@@ -431,6 +420,56 @@ export const Navbar: React.FC<NavbarProps> = ({
               <BlossomGlowLogo size="md" showText={true} />
             </button>
           </div>
+
+          {/* CENTER: PRIMARY NAVIGATION (Home, Collections ∨, New Arrivals) */}
+          <nav className="flex items-center gap-4 sm:gap-7 md:gap-9">
+            {/* 1. Home */}
+            <button
+              onClick={() => {
+                closeAllMenus();
+                onNavigateToHome();
+              }}
+              className="py-1.5 text-xs sm:text-sm md:text-[15px] font-medium text-stone-700 hover:text-stone-950 transition-colors cursor-pointer"
+            >
+              Home
+            </button>
+
+            {/* 2. Collections ∨ with Dropdown Toggle */}
+            <div className="relative" ref={collectionsMenuRef}>
+              <button
+                onClick={() => setIsCollectionsOpen(!isCollectionsOpen)}
+                className={`py-1.5 text-xs sm:text-sm md:text-[15px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
+                  isCollectionsOpen
+                    ? 'text-stone-950 border-b-2 border-stone-900 font-semibold pb-1'
+                    : 'text-stone-700 hover:text-stone-950'
+                }`}
+                aria-expanded={isCollectionsOpen}
+                aria-label="Toggle collections menu"
+              >
+                <span>Collections</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-stone-600 transition-transform duration-200 ${
+                    isCollectionsOpen ? 'rotate-180 text-stone-950' : ''
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* 3. New Arrivals */}
+            <button
+              onClick={() => {
+                closeAllMenus();
+                if (onNavigateToNewArrivals) {
+                  onNavigateToNewArrivals();
+                } else {
+                  onNavigateToShop('All Creations');
+                }
+              }}
+              className="py-1.5 text-xs sm:text-sm md:text-[15px] font-medium text-stone-700 hover:text-stone-950 transition-colors cursor-pointer whitespace-nowrap"
+            >
+              New Arrivals
+            </button>
+          </nav>
 
           {/* RIGHT: COMPACT ICONS & ACTIONS (Search, Scent Quiz CTA, Wishlist, Sign In, Bag) */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
@@ -592,591 +631,24 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </div>
 
-      {/* 3. REORGANIZED NAVIGATION DRAWER (ACCESSIBLE FROM FAR-LEFT DRAWER BUTTON) */}
-      {mobileMenuOpen && (
-        <>
-          {/* Backdrop overlay for closing on outside click */}
-          <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-xs z-30 transition-opacity animate-in fade-in duration-200"
-            onClick={() => setMobileMenuOpen(false)}
-            aria-hidden="true"
-          />
-
-          <div className="relative z-40 bg-[#FAF7F2] border-b border-stone-300 shadow-2xl px-4 sm:px-6 lg:px-10 py-6 space-y-5 animate-in slide-in-from-top-3 duration-200 max-h-[85vh] overflow-y-auto">
-            <div className="max-w-7xl mx-auto space-y-5">
-              {/* Drawer Header */}
-              <div className="flex items-center justify-between pb-3.5 border-b border-stone-200/80">
-                <div className="flex items-center gap-3">
-                  <BlossomGlowLogo size="sm" showText={true} />
-                  <span className="text-[11px] font-mono uppercase tracking-widest text-amber-900 bg-amber-100/80 px-2.5 py-0.5 rounded-full font-semibold">
-                    Atelier Navigation Index
-                  </span>
-                </div>
-                <button
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="p-1.5 rounded-xl text-stone-500 hover:text-stone-900 hover:bg-stone-200/60 transition-colors cursor-pointer"
-                  aria-label="Close drawer"
-                  title="Close Navigation Drawer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Quick Search & Scent Quiz Highlights Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div
-                  onClick={() => {
-                    closeAllMenus();
-                    onOpenSearch();
-                  }}
-                  className="flex items-center gap-2.5 px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-stone-500 text-xs cursor-pointer shadow-2xs hover:border-amber-400 hover:text-stone-800 transition-all"
-                >
-                  <Search className="w-4 h-4 text-stone-400" />
-                  <span>Search botanical candles, scents, gifts...</span>
-                </div>
-
-                {onOpenScentQuiz && (
-                  <div
-                    onClick={() => {
-                      closeAllMenus();
-                      onOpenScentQuiz();
-                    }}
-                    className="p-2.5 px-3.5 bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-amber-600/15 border border-amber-600/25 rounded-xl flex items-center justify-between cursor-pointer hover:bg-amber-500/20 transition-all shadow-2xs"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-800">
-                        <Sparkles className="w-3.5 h-3.5" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-amber-950">Find Your Signature Scent</p>
-                        <p className="text-[10px] text-stone-600">60-second botanical fragrance quiz</p>
-                      </div>
-                    </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-amber-800" />
-                  </div>
-                )}
-              </div>
-
-              {/* DESKTOP 5-COLUMN FULL ATELIER DIRECTORY (lg and up) */}
-              <div className="hidden lg:grid grid-cols-5 gap-6 pt-2 pb-4 border-b border-stone-200/80 text-xs">
-                {/* 1. Shop Atelier */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
-                    <Flame className="w-4 h-4 text-amber-800 shrink-0" />
-                    <span className="font-bold tracking-wider uppercase text-stone-900 text-[12px]">Shop</span>
-                  </div>
-                  <button
-                    onClick={() => {
-                      closeAllMenus();
-                      onNavigateToShop();
-                    }}
-                    className="font-semibold text-amber-900 hover:text-amber-950 flex items-center justify-between w-full text-left py-1 hover:translate-x-0.5 transition-transform cursor-pointer"
-                  >
-                    <span>View All Creations</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-amber-700" />
-                  </button>
-                  <div className="space-y-1 pt-1">
-                    {shopCategories.map((cat) => (
-                      <button
-                        key={cat.name}
-                        onClick={() => {
-                          closeAllMenus();
-                          onNavigateToShop(cat.filterName);
-                        }}
-                        className="w-full text-left py-1.5 px-2 rounded-lg hover:bg-white text-stone-700 hover:text-amber-950 transition-all cursor-pointer group"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-medium group-hover:text-amber-900">{cat.name}</span>
-                          <span className="text-[9px] font-mono px-1.5 py-0.2 bg-amber-100/70 text-amber-900 rounded">{cat.tag}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 2. Signature Series */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
-                    <Layers className="w-4 h-4 text-amber-800 shrink-0" />
-                    <span className="font-bold tracking-wider uppercase text-stone-900 text-[12px]">Collections</span>
-                  </div>
-                  <button
-                    onClick={() => {
-                      closeAllMenus();
-                      onNavigateToCollections();
-                    }}
-                    className="font-semibold text-amber-900 hover:text-amber-950 flex items-center justify-between w-full text-left py-1 hover:translate-x-0.5 transition-transform cursor-pointer"
-                  >
-                    <span>Explore All Series</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-amber-700" />
-                  </button>
-                  <div className="space-y-1 pt-1">
-                    {collectionsList.map((col) => (
-                      <button
-                        key={col.name}
-                        onClick={() => {
-                          closeAllMenus();
-                          onNavigateToShop(col.category);
-                        }}
-                        className="w-full text-left py-1.5 px-2 rounded-lg hover:bg-white text-stone-700 hover:text-amber-950 transition-all cursor-pointer group"
-                      >
-                        <p className="text-[11px] font-medium text-stone-800 group-hover:text-amber-900 truncate">{col.name}</p>
-                        <p className="text-[10px] text-amber-800/80 truncate">{col.notes}</p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 3. Curated Gifts */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
-                    <Gift className="w-4 h-4 text-amber-800 shrink-0" />
-                    <span className="font-bold tracking-wider uppercase text-stone-900 text-[12px]">Gifts</span>
-                  </div>
-                  <button
-                    onClick={() => {
-                      closeAllMenus();
-                      onNavigateToGifting();
-                    }}
-                    className="font-semibold text-amber-900 hover:text-amber-950 flex items-center justify-between w-full text-left py-1 hover:translate-x-0.5 transition-transform cursor-pointer"
-                  >
-                    <span>Curated Gift Sets</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-amber-700" />
-                  </button>
-                  <div className="space-y-1.5 pt-1">
-                    <button
-                      onClick={() => {
-                        closeAllMenus();
-                        onNavigateToShop('Gift Hampers');
-                      }}
-                      className="w-full text-left p-2 rounded-lg hover:bg-white transition-all cursor-pointer group"
-                    >
-                      <p className="text-[11px] font-semibold text-stone-800 group-hover:text-amber-900">The Sacred Evil Eye Box</p>
-                      <p className="text-[10px] text-stone-500">Royal blue talisman gift hamper</p>
-                    </button>
-                    <button
-                      onClick={() => {
-                        closeAllMenus();
-                        onOpenContact();
-                      }}
-                      className="w-full text-left p-2 rounded-lg hover:bg-white transition-all cursor-pointer group"
-                    >
-                      <p className="text-[11px] font-semibold text-stone-800 group-hover:text-amber-900">Corporate &amp; Wedding Concierge</p>
-                      <p className="text-[10px] text-stone-500">Personalized seals &amp; bespoke favors</p>
-                    </button>
-                  </div>
-                </div>
-
-                {/* 4. Custom Blender & Scents */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
-                    <Wand2 className="w-4 h-4 text-amber-800 shrink-0" />
-                    <span className="font-bold tracking-wider uppercase text-stone-900 text-[12px]">Custom</span>
-                  </div>
-                  <div className="space-y-2 pt-1">
-                    {onOpenCustomBlender && (
-                      <button
-                        onClick={() => {
-                          closeAllMenus();
-                          onOpenCustomBlender();
-                        }}
-                        className="w-full text-left p-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-600/20 transition-all cursor-pointer group"
-                      >
-                        <p className="text-xs font-semibold text-amber-900 group-hover:text-amber-950 flex items-center justify-between">
-                          <span>Custom Candle Blender</span>
-                          <ArrowRight className="w-3 h-3 text-amber-700" />
-                        </p>
-                        <p className="text-[10px] text-stone-600 mt-0.5">3D Interactive fragrance mixing</p>
-                      </button>
-                    )}
-                    {onOpenScentQuiz && (
-                      <button
-                        onClick={() => {
-                          closeAllMenus();
-                          onOpenScentQuiz();
-                        }}
-                        className="w-full text-left p-2.5 rounded-xl bg-white hover:bg-stone-50 border border-stone-200 transition-all cursor-pointer group shadow-2xs"
-                      >
-                        <p className="text-xs font-semibold text-stone-900 group-hover:text-amber-900 flex items-center gap-1.5">
-                          <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                          <span>Scent Aura Quiz</span>
-                        </p>
-                        <p className="text-[10px] text-stone-500 mt-0.5">Find your botanical aroma profile</p>
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* 5. Atelier Story & Care */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
-                    <Compass className="w-4 h-4 text-amber-800 shrink-0" />
-                    <span className="font-bold tracking-wider uppercase text-stone-900 text-[12px]">Our Story</span>
-                  </div>
-                  <div className="space-y-1.5 pt-1">
-                    <button
-                      onClick={() => {
-                        closeAllMenus();
-                        onNavigateToAbout();
-                      }}
-                      className="w-full text-left p-2 rounded-lg hover:bg-white transition-all cursor-pointer group"
-                    >
-                      <p className="text-[11px] font-semibold text-stone-800 group-hover:text-amber-900">Atelier Story &amp; Artisans</p>
-                      <p className="text-[10px] text-stone-500">Women empowerment &amp; non-toxic soy</p>
-                    </button>
-                    {onOpenCareGuide && (
-                      <button
-                        onClick={() => {
-                          closeAllMenus();
-                          onOpenCareGuide();
-                        }}
-                        className="w-full text-left p-2 rounded-lg hover:bg-white transition-all cursor-pointer group"
-                      >
-                        <p className="text-[11px] font-semibold text-stone-800 group-hover:text-amber-900">Candle Care &amp; Burn Guide</p>
-                        <p className="text-[10px] text-stone-500">Wick trimming &amp; burn etiquette</p>
-                      </button>
-                    )}
-                    <button
-                      onClick={() => {
-                        closeAllMenus();
-                        onOpenContact();
-                      }}
-                      className="w-full text-left p-2 rounded-lg hover:bg-white transition-all cursor-pointer group"
-                    >
-                      <p className="text-[11px] font-semibold text-stone-800 group-hover:text-amber-900">Contact Concierge</p>
-                      <p className="text-[10px] text-stone-500">Direct phone &amp; WhatsApp support</p>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* MOBILE ACCORDION NAVIGATION (lg:hidden) */}
-              <div className="lg:hidden divide-y divide-stone-200 border-y border-stone-200 text-sm font-semibold uppercase tracking-wider text-stone-800">
-                {/* 1. Shop Accordion */}
-                <div className="py-2">
-                  <button
-                    onClick={() =>
-                      setMobileExpandedSection(mobileExpandedSection === 'shop' ? null : 'shop')
-                    }
-                    className="w-full flex items-center justify-between py-2 text-left text-stone-900"
-                  >
-                    <span>Shop</span>
-                    <ChevronDown
-                      className={`w-4 h-4 text-stone-500 transition-transform ${
-                        mobileExpandedSection === 'shop' ? 'rotate-180 text-amber-800' : ''
-                      }`}
-                    />
-                  </button>
-                  {mobileExpandedSection === 'shop' && (
-                    <div className="pl-3 pr-1 py-2 space-y-1.5 text-xs font-normal normal-case">
-                      <button
-                        onClick={() => {
-                          closeAllMenus();
-                          onNavigateToShop();
-                        }}
-                        className="w-full text-left py-1.5 px-2 rounded-lg hover:bg-stone-200/50 font-medium text-amber-900 flex items-center justify-between"
-                      >
-                        <span>View All Creations</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                      {shopCategories.map((cat) => (
-                        <button
-                          key={cat.name}
-                          onClick={() => {
-                            closeAllMenus();
-                            onNavigateToShop(cat.filterName);
-                          }}
-                          className="w-full text-left py-1.5 px-2 rounded-lg hover:bg-stone-200/50 text-stone-700 flex items-center justify-between"
-                        >
-                          <span>{cat.name}</span>
-                          <span className="text-[9px] font-mono px-1.5 py-0.2 bg-amber-100 text-amber-900 rounded">
-                            {cat.tag}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* 2. Collections Accordion */}
-                <div className="py-2">
-                  <button
-                    onClick={() =>
-                      setMobileExpandedSection(
-                        mobileExpandedSection === 'collections' ? null : 'collections'
-                      )
-                    }
-                    className="w-full flex items-center justify-between py-2 text-left text-stone-900"
-                  >
-                    <span>Collections</span>
-                    <ChevronDown
-                      className={`w-4 h-4 text-stone-500 transition-transform ${
-                        mobileExpandedSection === 'collections' ? 'rotate-180 text-amber-800' : ''
-                      }`}
-                    />
-                  </button>
-                  {mobileExpandedSection === 'collections' && (
-                    <div className="pl-3 pr-1 py-2 space-y-1.5 text-xs font-normal normal-case">
-                      <button
-                        onClick={() => {
-                          closeAllMenus();
-                          onNavigateToCollections();
-                        }}
-                        className="w-full text-left py-1.5 px-2 rounded-lg hover:bg-stone-200/50 font-medium text-amber-900 flex items-center justify-between"
-                      >
-                        <span>Explore All Collections</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                      {collectionsList.map((col) => (
-                        <button
-                          key={col.name}
-                          onClick={() => {
-                            closeAllMenus();
-                            onNavigateToShop(col.category);
-                          }}
-                          className="w-full text-left py-1.5 px-2 rounded-lg hover:bg-stone-200/50 text-stone-700 flex items-center justify-between"
-                        >
-                          <span>{col.name}</span>
-                          <span className="text-[10px] text-stone-400 font-mono">{col.highlight}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* 3. Gifts Accordion */}
-                <div className="py-2">
-                  <button
-                    onClick={() =>
-                      setMobileExpandedSection(mobileExpandedSection === 'gifts' ? null : 'gifts')
-                    }
-                    className="w-full flex items-center justify-between py-2 text-left text-stone-900"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span>Gifts</span>
-                      <span className="text-[9px] font-mono bg-amber-100 text-amber-900 px-1.5 rounded uppercase">
-                        Curated
-                      </span>
-                    </div>
-                    <ChevronDown
-                      className={`w-4 h-4 text-stone-500 transition-transform ${
-                        mobileExpandedSection === 'gifts' ? 'rotate-180 text-amber-800' : ''
-                      }`}
-                    />
-                  </button>
-                  {mobileExpandedSection === 'gifts' && (
-                    <div className="pl-3 pr-1 py-2 space-y-1.5 text-xs font-normal normal-case">
-                      <button
-                        onClick={() => {
-                          closeAllMenus();
-                          onNavigateToGifting();
-                        }}
-                        className="w-full text-left py-1.5 px-2 rounded-lg hover:bg-stone-200/50 font-medium text-amber-900 flex items-center justify-between"
-                      >
-                        <span>Curated Gift Hampers &amp; Sets</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          closeAllMenus();
-                          onNavigateToShop('Gift Hampers');
-                        }}
-                        className="w-full text-left py-1.5 px-2 rounded-lg hover:bg-stone-200/50 text-stone-700"
-                      >
-                        The Sacred Evil Eye Protection Box
-                      </button>
-                      <button
-                        onClick={() => {
-                          closeAllMenus();
-                          onOpenContact();
-                        }}
-                        className="w-full text-left py-1.5 px-2 rounded-lg hover:bg-stone-200/50 text-stone-700"
-                      >
-                        Corporate &amp; Wedding Favors Concierge
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* 4. Custom Accordion */}
-                <div className="py-2">
-                  <button
-                    onClick={() =>
-                      setMobileExpandedSection(mobileExpandedSection === 'custom' ? null : 'custom')
-                    }
-                    className="w-full flex items-center justify-between py-2 text-left text-stone-900"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Wand2 className="w-3.5 h-3.5 text-amber-700" />
-                      <span>Custom</span>
-                    </div>
-                    <ChevronDown
-                      className={`w-4 h-4 text-stone-500 transition-transform ${
-                        mobileExpandedSection === 'custom' ? 'rotate-180 text-amber-800' : ''
-                      }`}
-                    />
-                  </button>
-                  {mobileExpandedSection === 'custom' && (
-                    <div className="pl-3 pr-1 py-2 space-y-1.5 text-xs font-normal normal-case">
-                      {onOpenCustomBlender && (
-                        <button
-                          onClick={() => {
-                            closeAllMenus();
-                            onOpenCustomBlender();
-                          }}
-                          className="w-full text-left py-1.5 px-2 rounded-lg hover:bg-stone-200/50 font-medium text-amber-900 flex items-center justify-between"
-                        >
-                          <span className="flex items-center gap-1.5">
-                            <Wand2 className="w-3.5 h-3.5 text-amber-700" />
-                            Custom Candle Blender
-                          </span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                      {onOpenScentQuiz && (
-                        <button
-                          onClick={() => {
-                            closeAllMenus();
-                            onOpenScentQuiz();
-                          }}
-                          className="w-full text-left py-1.5 px-2 rounded-lg hover:bg-stone-200/50 text-stone-700 flex items-center gap-1.5"
-                        >
-                          <Sparkles className="w-3.5 h-3.5 text-amber-700" />
-                          Fragrance Aura Scent Quiz
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* 5. Our Story Accordion */}
-                <div className="py-2">
-                  <button
-                    onClick={() =>
-                      setMobileExpandedSection(mobileExpandedSection === 'story' ? null : 'story')
-                    }
-                    className="w-full flex items-center justify-between py-2 text-left text-stone-900"
-                  >
-                    <span>Our Story</span>
-                    <ChevronDown
-                      className={`w-4 h-4 text-stone-500 transition-transform ${
-                        mobileExpandedSection === 'story' ? 'rotate-180 text-amber-800' : ''
-                      }`}
-                    />
-                  </button>
-                  {mobileExpandedSection === 'story' && (
-                    <div className="pl-3 pr-1 py-2 space-y-1.5 text-xs font-normal normal-case">
-                      <button
-                        onClick={() => {
-                          closeAllMenus();
-                          onNavigateToAbout();
-                        }}
-                        className="w-full text-left py-1.5 px-2 rounded-lg hover:bg-stone-200/50 font-medium text-amber-900 flex items-center justify-between"
-                      >
-                        <span>Atelier Story &amp; Artisan Craft</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                      {onOpenCareGuide && (
-                        <button
-                          onClick={() => {
-                            closeAllMenus();
-                            onOpenCareGuide();
-                          }}
-                          className="w-full text-left py-1.5 px-2 rounded-lg hover:bg-stone-200/50 text-stone-700 flex items-center gap-1.5"
-                        >
-                          <BookOpen className="w-3.5 h-3.5 text-amber-700" />
-                          Candle Care &amp; Burn Guide
-                        </button>
-                      )}
-                      <button
-                        onClick={() => {
-                          closeAllMenus();
-                          onOpenContact();
-                        }}
-                        className="w-full text-left py-1.5 px-2 rounded-lg hover:bg-stone-200/50 text-stone-700 flex items-center gap-1.5"
-                      >
-                        <PhoneCall className="w-3.5 h-3.5 text-amber-700" />
-                        Contact Concierge
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Drawer Footer Utilities */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-2 text-xs">
-                {onOpenTracking && (
-                  <button
-                    onClick={() => {
-                      closeAllMenus();
-                      onOpenTracking();
-                    }}
-                    className="py-2.5 px-3.5 rounded-xl bg-white border border-stone-200 hover:border-amber-300 hover:shadow-2xs flex items-center justify-between text-stone-800 font-medium transition-colors cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Package className="w-4 h-4 text-amber-700" />
-                      <span>Track Order</span>
-                    </span>
-                    <ArrowRight className="w-3.5 h-3.5 text-stone-400" />
-                  </button>
-                )}
-
-                <button
-                  onClick={() => {
-                    closeAllMenus();
-                    onOpenWishlist();
-                  }}
-                  className="py-2.5 px-3.5 rounded-xl bg-white border border-stone-200 hover:border-amber-300 hover:shadow-2xs flex items-center justify-between text-stone-800 font-medium transition-colors cursor-pointer"
-                >
-                  <span className="flex items-center gap-2">
-                    <Heart className="w-4 h-4 text-rose-600" />
-                    <span>Saved Wishlist</span>
-                  </span>
-                  {wishlistCount > 0 && (
-                    <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">
-                      {wishlistCount}
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => {
-                    closeAllMenus();
-                    onOpenCart();
-                  }}
-                  className="py-2.5 px-3.5 rounded-xl bg-white border border-stone-200 hover:border-amber-300 hover:shadow-2xs flex items-center justify-between text-stone-800 font-medium transition-colors cursor-pointer"
-                >
-                  <span className="flex items-center gap-2">
-                    <ShoppingBag className="w-4 h-4 text-amber-800" />
-                    <span>Shopping Bag</span>
-                  </span>
-                  {cartCount > 0 && (
-                    <span className="px-2 py-0.5 rounded-full bg-amber-200 text-stone-950 text-[10px] font-bold">
-                      {cartCount}
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => {
-                    closeAllMenus();
-                    onOpenArchitecture();
-                  }}
-                  className="py-2.5 px-3.5 rounded-xl bg-stone-100 hover:bg-stone-200/60 text-stone-600 text-[11px] font-mono flex items-center justify-between transition-colors cursor-pointer"
-                  title="Spring Boot 8080 API Specs"
-                >
-                  <span>API Specs (Port 8080)</span>
-                  <span
-                    className={`w-2 h-2 rounded-full ${
-                      isBackendConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'
-                    }`}
-                  />
-                </button>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
+      {/* 3. COLLECTIONS DROPDOWN MENU */}
+      <CollectionsDropdownMenu
+        isOpen={isCollectionsOpen}
+        onClose={() => setIsCollectionsOpen(false)}
+        onOpenSearch={onOpenSearch}
+        onOpenScentQuiz={onOpenScentQuiz}
+        onOpenCustomBlender={onOpenCustomBlender}
+        onOpenGiftBuilder={onOpenGiftBuilder}
+        onOpenContact={onOpenContact}
+        onOpenCareGuide={onOpenCareGuide}
+        onOpenTracking={onOpenTracking}
+        onOpenArchitecture={onOpenArchitecture}
+        onNavigateToShop={onNavigateToShop}
+        onNavigateToCollections={onNavigateToCollections}
+        onNavigateToAbout={onNavigateToAbout}
+        onNavigateToGifting={onNavigateToGifting}
+        isBackendConnected={isBackendConnected}
+      />
     </header>
   );
 };

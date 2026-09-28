@@ -1,5 +1,6 @@
 import React from 'react';
 import { Sparkles, ShieldCheck, Heart, Leaf, Wind } from 'lucide-react';
+import { PRODUCT_ASSETS } from '../assets/products';
 
 export const BrandAtelierSection: React.FC = () => {
   return (
@@ -10,7 +11,7 @@ export const BrandAtelierSection: React.FC = () => {
           <div className="relative">
             <div className="aspect-[4/3] rounded-2xl overflow-hidden shadow-xl border border-stone-200 bg-white">
               <img
-                src="/src/assets/images/wooden_dough_bowl_1790142271592.jpg"
+                src={PRODUCT_ASSETS.woodenDoughBowl}
                 alt="BlossomGlow Candle Creations artisanal botanical candle crafting"
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover"

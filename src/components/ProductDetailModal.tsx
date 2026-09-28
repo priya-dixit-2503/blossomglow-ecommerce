@@ -27,9 +27,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onToggleWishlist,
 }) => {
   // Always declare all hooks unconditionally at top level
-  const [selectedImage, setSelectedImage] = useState<string>(product?.image || '');
-  const [selectedVessel, setSelectedVessel] = useState<VesselColor>(product?.availableVessels[0] || 'Frosted Amber');
-  const [selectedWick, setSelectedWick] = useState<WickType>(product?.availableWicks[0] || 'Crackling Wood Wick');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedVessel, setSelectedVessel] = useState<VesselColor>(product?.availableVessels?.[0] || 'Frosted Amber');
+  const [selectedWick, setSelectedWick] = useState<WickType>(product?.availableWicks?.[0] || 'Crackling Wood Wick');
   const [selectedSize, setSelectedSize] = useState<CandleSize>('280g (Double Wick)');
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'notes' | 'specs' | 'care' | 'reviews'>('notes');
@@ -56,6 +56,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
       CandleApiService.getReviewsForProduct(product.id).then((revs) => {
         setReviews(revs);
       });
+    } else {
+      setSelectedImage(null);
     }
   }, [product?.id]);
 
@@ -111,13 +113,14 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   };
 
   const resolvedMainImage = resolveImage(product.image || (product as any)?.imageUrl, product.id, product.name);
+  const displayImage = selectedImage || resolvedMainImage || '/products/floral-garden.jpg';
   const allImages = [
     resolvedMainImage,
     ...(product.galleryImages || [])
-      .filter((img) => img && typeof img === 'string')
+      .filter((img): img is string => typeof img === 'string' && img.trim().length > 0)
       .map((img) => resolveImage(img, product.id, product.name))
       .filter((img) => img !== resolvedMainImage),
-  ];
+  ].filter((img): img is string => typeof img === 'string' && img.trim().length > 0);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-stone-950/70 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
@@ -165,8 +168,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 <div className="space-y-3">
                   <div className="aspect-[4/3] rounded-2xl overflow-hidden bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 relative">
                     <img
-                      src={selectedImage}
+                      src={displayImage}
                       alt={product.name}
+                      onError={(e) => {
+                        e.currentTarget.src = '/products/floral-garden.jpg';
+                      }}
                       className="w-full h-full object-cover"
                     />
                     {isOutOfStock ? (
@@ -191,12 +197,19 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                         key={idx}
                         onClick={() => setSelectedImage(img)}
                         className={`w-14 h-14 rounded-xl overflow-hidden border-2 transition-all cursor-pointer shrink-0 ${
-                          selectedImage === img
+                          displayImage === img
                             ? 'border-amber-800 ring-2 ring-amber-700/20 scale-105'
                             : 'border-transparent opacity-70 hover:opacity-100'
                         }`}
                       >
-                        <img src={img} alt="thumbnail" className="w-full h-full object-cover" />
+                        <img
+                          src={img}
+                          alt={`${product.name} thumbnail ${idx + 1}`}
+                          onError={(e) => {
+                            e.currentTarget.src = '/products/floral-garden.jpg';
+                          }}
+                          className="w-full h-full object-cover"
+                        />
                       </button>
                     ))}
                   </div>

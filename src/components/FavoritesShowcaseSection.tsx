@@ -9,9 +9,11 @@ interface FavoritesShowcaseSectionProps {
   onToggleWishlist: (id: string) => void;
   onQuickView: (product: Product) => void;
   onQuickAdd: (product: Product) => void;
+  activeTab?: TabType;
+  onTabChange?: (tab: TabType) => void;
 }
 
-type TabType = 'all' | 'best-sellers' | 'pillars-jars' | 'floating-festive' | 'gift-hampers';
+export type TabType = 'all' | 'best-sellers' | 'new-arrivals' | 'pillars-jars' | 'floating-festive' | 'gift-hampers';
 
 export const FavoritesShowcaseSection: React.FC<FavoritesShowcaseSectionProps> = ({
   products,
@@ -19,8 +21,15 @@ export const FavoritesShowcaseSection: React.FC<FavoritesShowcaseSectionProps> =
   onToggleWishlist,
   onQuickView,
   onQuickAdd,
+  activeTab: externalTab,
+  onTabChange,
 }) => {
-  const [activeTab, setActiveTab] = useState<TabType>('best-sellers');
+  const [internalTab, setInternalTab] = useState<TabType>('best-sellers');
+  const activeTab = externalTab ?? internalTab;
+  const setActiveTab = (tab: TabType) => {
+    if (onTabChange) onTabChange(tab);
+    setInternalTab(tab);
+  };
   const [showAllInTab, setShowAllInTab] = useState(false);
 
   // Filter based on active tab
@@ -30,6 +39,9 @@ export const FavoritesShowcaseSection: React.FC<FavoritesShowcaseSectionProps> =
     }
     if (activeTab === 'best-sellers') {
       return p.isBestSeller;
+    }
+    if (activeTab === 'new-arrivals') {
+      return p.isNewArrival;
     }
     if (activeTab === 'pillars-jars') {
       return (
@@ -93,6 +105,19 @@ export const FavoritesShowcaseSection: React.FC<FavoritesShowcaseSectionProps> =
               }`}
             >
               All Creations
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('new-arrivals');
+                setShowAllInTab(false);
+              }}
+              className={`px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
+                activeTab === 'new-arrivals'
+                  ? 'bg-[#161311] text-amber-300 shadow-md'
+                  : 'bg-white text-stone-600 hover:bg-stone-100 hover:text-stone-900 border border-stone-200'
+              }`}
+            >
+              New Arrivals
             </button>
             <button
               onClick={() => {

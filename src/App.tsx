@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Navbar } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
 import { FeaturedPromoSection } from './components/FeaturedPromoSection';
-import { FavoritesShowcaseSection } from './components/FavoritesShowcaseSection';
+import { FavoritesShowcaseSection, TabType } from './components/FavoritesShowcaseSection';
 import { CollectionsSection } from './components/CollectionsSection';
 import { StorySections } from './components/StorySections';
 import { PromotionalBanner } from './components/PromotionalBanner';
@@ -91,6 +91,7 @@ export default function App() {
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [showcaseActiveTab, setShowcaseActiveTab] = useState<TabType>('best-sellers');
 
   // Section Refs for smooth navigation
   const shopSectionRef = useRef<HTMLDivElement>(null);
@@ -290,6 +291,11 @@ export default function App() {
     shopSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const handleScrollToNewArrivals = () => {
+    setShowcaseActiveTab('new-arrivals');
+    shopSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   const handleScrollToCollections = () => {
     const el = document.getElementById('collections');
     if (el) el.scrollIntoView({ behavior: 'smooth' });
@@ -353,6 +359,7 @@ export default function App() {
         onOpenOrderHistory={() => setIsOrderHistoryOpen(true)}
         onLogout={handleLogout}
         onNavigateToHome={handleScrollToHome}
+        onNavigateToNewArrivals={handleScrollToNewArrivals}
         onNavigateToShop={(category?: string) => {
           if (category) setSelectedCategory(category);
           handleScrollToShop();
@@ -360,6 +367,7 @@ export default function App() {
         onNavigateToCollections={handleScrollToCollections}
         onNavigateToAbout={handleScrollToAbout}
         onNavigateToGifting={handleScrollToGifting}
+        onOpenGiftBuilder={() => setIsGiftBuilderOpen(true)}
       />
 
       {/* Recent Order Banner if active */}
@@ -403,6 +411,8 @@ export default function App() {
         <FavoritesShowcaseSection
           products={products}
           wishlistIds={wishlistIds}
+          activeTab={showcaseActiveTab}
+          onTabChange={setShowcaseActiveTab}
           onToggleWishlist={handleToggleWishlist}
           onQuickView={(p) => setSelectedProduct(p)}
           onQuickAdd={handleQuickAdd}

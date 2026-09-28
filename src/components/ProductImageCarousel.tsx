@@ -178,7 +178,7 @@ export const ProductImageCarousel: React.FC<ProductImageCarouselProps> = ({
               key={`${src}-${index}`}
               className="relative w-full h-full flex-shrink-0 overflow-hidden"
             >
-              {!isFailed ? (
+              {!isFailed && src && src.trim() !== '' ? (
                 <img
                   src={src}
                   alt={`${alt} - View ${index + 1}`}
