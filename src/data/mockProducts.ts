@@ -455,7 +455,7 @@ export const MOCK_PRODUCTS: Product[] = [
       baseNotes: ['Warm Amber', 'Clean White Musk', 'Sandalwood Veil'],
     },
     description: 'A serene vanity centerpiece pairing a fluted white mini ceramic bud vase filled with dried botanical florals and a matching round ribbed soy candle dish, resting together upon an artisanal oval tray hand-cast with soft mint green marble swirls.',
-    artisanStory: 'Each tray is individually marbled and wet-sanded in Priya Dixit’s home studio. Poured with slow-curing soy wax for a clean, non-toxic burn.',
+    artisanStory: 'Each tray is individually marbled and wet-sanded in our artisan home studio. Poured with slow-curing soy wax for a clean, non-toxic burn.',
     availableVessels: ['Fluted Ivory', 'Matte Blush Cream'],
     availableWicks: ['Organic Cotton Wick'],
     inStock: true,

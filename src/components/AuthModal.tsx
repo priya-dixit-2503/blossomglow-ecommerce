@@ -74,7 +74,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setPassword('blossomglow2026!');
     } else {
       setTab('login');
-      setUsernameOrEmail('priya.dixit.25032002@gmail.com');
+      setUsernameOrEmail('customer@blossomglow.com');
       setPassword('candleArtisan2026');
     }
   };
@@ -176,7 +176,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Priya Sharma"
+                    placeholder="Enter your name"
                     className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-amber-600/30"
                   />
                 </div>

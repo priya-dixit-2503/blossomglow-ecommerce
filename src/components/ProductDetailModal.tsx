@@ -472,7 +472,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                       <div>
                         <span className="text-stone-400 block text-[10px] uppercase">Artisan Origin</span>
                         <span className="text-stone-900 dark:text-stone-100 font-medium">
-                          Priya Dixit Atelier, India
+                          BlossomGlow Atelier, India
                         </span>
                       </div>
                     </div>

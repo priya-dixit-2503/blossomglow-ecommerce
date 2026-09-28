@@ -623,7 +623,7 @@ export class CandleApiService {
         baseNotes: ['Amber', 'Sandalwood'],
       },
       description: productData.description || 'Poured with 100% natural botanical wax and clean lead-free wicks.',
-      artisanStory: productData.artisanStory || 'Handcrafted in small batches by Priya Dixit.',
+      artisanStory: productData.artisanStory || 'Handcrafted in small batches by master artisans at BlossomGlow Atelier.',
       availableVessels: productData.availableVessels || ['Fluted Ivory', 'Matte Blush Cream'],
       availableWicks: productData.availableWicks || ['Organic Cotton Wick', 'Crackling Wood Wick'],
       inStock: productData.inStock ?? true,
