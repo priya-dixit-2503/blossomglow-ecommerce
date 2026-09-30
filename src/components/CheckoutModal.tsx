@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { X, ShieldCheck, CheckCircle2, Truck, CreditCard, QrCode, ArrowRight, Package } from 'lucide-react';
-import { CartItem, CustomerOrderInfo, Order } from '../types';
+import React, { useState, useEffect } from 'react';
+import { X, ShieldCheck, CheckCircle2, Truck, CreditCard, QrCode, ArrowRight, Package, Lock, UserCheck, AlertCircle } from 'lucide-react';
+import { CartItem, CustomerOrderInfo, Order, UserProfile } from '../types';
 import { CandleApiService } from '../services/api';
 
 interface CheckoutModalProps {
@@ -8,7 +8,10 @@ interface CheckoutModalProps {
   onClose: () => void;
   items: CartItem[];
   couponCode: string;
+  currentUser?: UserProfile | null;
+  onOpenAuth?: (mode: 'login' | 'register') => void;
   onOrderSuccess: (order: Order) => void;
+  onTrackOrder?: (orderNumber: string) => void;
 }
 
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({
@@ -16,16 +19,19 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   onClose,
   items,
   couponCode,
+  currentUser,
+  onOpenAuth,
   onOrderSuccess,
+  onTrackOrder,
 }) => {
   const [step, setStep] = useState<'details' | 'payment' | 'processing' | 'confirmed'>('details');
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
 
   // Form State
   const [formData, setFormData] = useState<CustomerOrderInfo>({
-    fullName: '',
-    email: '',
-    phone: '',
+    fullName: currentUser?.fullName || '',
+    email: currentUser?.email || '',
+    phone: currentUser?.phone || '',
     address: '',
     city: '',
     state: 'Maharashtra',
@@ -35,6 +41,19 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'Card' | 'NetBanking' | 'Cash on Delivery'>('UPI');
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
+  const [orderError, setOrderError] = useState<string | null>(null);
+
+  // Synchronize form with authenticated customer when currentUser changes
+  useEffect(() => {
+    if (currentUser) {
+      setFormData((prev) => ({
+        ...prev,
+        fullName: prev.fullName || currentUser.fullName,
+        email: currentUser.email,
+        phone: prev.phone || currentUser.phone || '',
+      }));
+    }
+  }, [currentUser]);
 
   if (!isOpen) return null;
 
@@ -47,6 +66,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const validateDetails = () => {
     const errors: { [key: string]: string } = {};
+
+    // Check customer authentication
+    const activeUser = CandleApiService.getCurrentUser();
+    if (!activeUser) {
+      errors.auth = 'Spring Security requires an authenticated customer account (ROLE_CUSTOMER) to place orders.';
+    }
+
     if (!formData.fullName.trim()) errors.fullName = 'Please provide your full name';
     if (!formData.email.trim() || !formData.email.includes('@')) errors.email = 'Valid email is required for shipping updates';
     if (!formData.phone.trim() || formData.phone.length < 10) errors.phone = '10-digit mobile number required';
@@ -64,7 +90,27 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
   };
 
+  const handleQuickCustomerSignIn = async () => {
+    try {
+      const user = await CandleApiService.login('customer@blossomglow.in', 'candle123');
+      setFormData((prev) => ({
+        ...prev,
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone || '9876543210',
+      }));
+      setFormErrors((prev) => {
+        const copy = { ...prev };
+        delete copy.auth;
+        return copy;
+      });
+    } catch {
+      // fallback
+    }
+  };
+
   const handlePlaceOrder = async () => {
+    setOrderError(null);
     setStep('processing');
     try {
       const order = await CandleApiService.createOrder({
@@ -76,8 +122,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       setCreatedOrder(order);
       setStep('confirmed');
       onOrderSuccess(order);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setOrderError(err.message || 'Failed to place order');
       setStep('payment');
     }
   };
@@ -119,6 +166,88 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   Your candles are safely packaged with biodegradable honeycomb cushioning.
                 </p>
               </div>
+
+              {/* Spring Security RBAC Customer Banner */}
+              {currentUser ? (
+                <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl flex items-center justify-between text-left">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 bg-emerald-100 text-emerald-800 rounded-lg">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-emerald-950">
+                          Authenticated Customer: {currentUser.fullName}
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          {currentUser.role}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-emerald-700 font-mono mt-0.5">
+                        {currentUser.email} • JWT Bearer Token Active
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono text-emerald-800 bg-white/80 px-2 py-1 rounded-md border border-emerald-200 font-medium">
+                    Order Privacy Protected
+                  </span>
+                </div>
+              ) : (
+                <div className="p-3.5 bg-amber-50/90 border border-amber-200/90 rounded-xl text-left">
+                  <div className="flex items-start gap-2.5">
+                    <div className="p-1.5 bg-amber-100 text-amber-900 rounded-lg shrink-0 mt-0.5">
+                      <Lock className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-semibold text-stone-900">
+                          Customer Authentication Required (Spring Security)
+                        </h4>
+                        <span className="text-[10px] font-mono uppercase bg-amber-200/80 text-amber-900 px-1.5 py-0.5 rounded font-bold">
+                          POST /api/orders
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-stone-600 mt-1">
+                        In production, order creation is restricted to authenticated customers (<code>ROLE_CUSTOMER</code>). Please sign in or use 1-click customer login to complete this order.
+                      </p>
+                      {formErrors.auth && (
+                        <div className="flex items-center gap-1.5 text-[11px] text-rose-600 font-medium mt-1.5">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span>{formErrors.auth}</span>
+                        </div>
+                      )}
+                      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                        {onOpenAuth && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => onOpenAuth('login')}
+                              className="px-3 py-1 bg-stone-900 hover:bg-black text-white rounded text-[11px] font-medium transition-colors cursor-pointer"
+                            >
+                              Sign In
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onOpenAuth('register')}
+                              className="px-3 py-1 bg-white hover:bg-stone-100 text-stone-800 border border-stone-300 rounded text-[11px] font-medium transition-colors cursor-pointer"
+                            >
+                              Create Account
+                            </button>
+                          </>
+                        )}
+                        <button
+                          type="button"
+                          onClick={handleQuickCustomerSignIn}
+                          className="px-3 py-1 bg-amber-100/90 hover:bg-amber-200/90 text-amber-900 rounded text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1"
+                        >
+                          <UserCheck className="w-3 h-3" />
+                          <span>1-Click Demo Customer Login</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -253,6 +382,20 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </button>
               </div>
 
+              {orderError && (
+                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-left flex items-start gap-2.5 animate-in fade-in">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <h5 className="text-xs font-semibold text-rose-900">
+                      Order Rejection / Insufficient Stock
+                    </h5>
+                    <p className="text-[11px] text-rose-700 mt-0.5 font-medium leading-relaxed">
+                      {orderError}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2.5">
                 {[
                   {
@@ -316,6 +459,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <div className="flex justify-between font-semibold text-stone-900 text-sm pt-2 border-t border-stone-200">
                   <span>Grand Total:</span>
                   <span className="font-mono tabular-nums">₹{totalAmount}</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] text-stone-500 pt-1">
+                  <ShieldCheck className="w-3 h-3 text-stone-600 shrink-0" />
+                  <span>Backend Authority: Final prices, inventory stock &amp; discounts verified on server.</span>
                 </div>
               </div>
 
@@ -390,12 +537,33 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   <span className="text-stone-400 block text-[10px] uppercase">Payment Method</span>
                   <span className="font-medium text-stone-800">{createdOrder.paymentMethod}</span>
                 </div>
+                <div className="col-span-2 pt-2 border-t border-stone-200/80 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-[11px] text-emerald-800 font-medium">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Server-Verified Final Amount</span>
+                  </div>
+                  <span className="font-mono font-bold text-stone-900 text-sm">
+                    ₹{createdOrder.totalAmount.toLocaleString('en-IN')}
+                  </span>
+                </div>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                {onTrackOrder && (
+                  <button
+                    onClick={() => {
+                      onClose();
+                      onTrackOrder(createdOrder.orderNumber);
+                    }}
+                    className="flex-1 bg-amber-400 hover:bg-amber-300 text-stone-950 py-3 px-4 rounded-xl text-xs font-semibold uppercase tracking-wider shadow-md transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Package className="w-4 h-4" />
+                    <span>Track This Order</span>
+                  </button>
+                )}
                 <button
                   onClick={onClose}
-                  className="flex-1 bg-[#262220] hover:bg-black text-white py-3 px-4 rounded-xl text-xs font-semibold uppercase tracking-wider shadow-md transition-colors"
+                  className="flex-1 bg-[#262220] hover:bg-black text-white py-3 px-4 rounded-xl text-xs font-semibold uppercase tracking-wider shadow-md transition-colors cursor-pointer"
                 >
                   Continue Shopping
                 </button>

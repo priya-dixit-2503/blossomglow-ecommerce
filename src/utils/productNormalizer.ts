@@ -175,8 +175,16 @@ export function normalizeProduct(raw: any): Product {
     availableWicks:
       raw.availableWicks ||
       matchingMock?.availableWicks || ['Organic Cotton Wick', 'Crackling Wood Wick'],
-    inStock: raw.inStock !== undefined ? Boolean(raw.inStock) : true,
-    stockQuantity: raw.stockQuantity !== undefined ? Number(raw.stockQuantity) : 35,
+    inStock:
+      raw.stockQuantity !== undefined
+        ? Number(raw.stockQuantity) > 0 && Boolean(raw.inStock ?? true)
+        : raw.inStock !== undefined
+        ? Boolean(raw.inStock)
+        : true,
+    stockQuantity:
+      raw.stockQuantity !== undefined
+        ? Math.max(0, Number(raw.stockQuantity))
+        : (matchingMock?.stockQuantity ?? 35),
     isBestSeller: Boolean(raw.isBestSeller),
     isNewArrival: Boolean(raw.isNewArrival),
     seasonRelease: raw.seasonRelease || matchingMock?.seasonRelease || 'Atelier Collection',

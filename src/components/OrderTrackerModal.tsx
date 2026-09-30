@@ -1,37 +1,75 @@
-import React, { useState } from 'react';
-import { X, Search, Package, Truck, CheckCircle2, Clock, MapPin } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Search, Package, Truck, CheckCircle2, Clock, MapPin, Sparkles } from 'lucide-react';
 import { Order } from '../types';
 import { CandleApiService } from '../services/api';
 
 interface OrderTrackerModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialOrderNumber?: string;
 }
 
 export const OrderTrackerModal: React.FC<OrderTrackerModalProps> = ({
   isOpen,
   onClose,
+  initialOrderNumber,
 }) => {
   const [query, setQuery] = useState('');
   const [order, setOrder] = useState<Order | null>(null);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (isOpen) {
+      const stored = CandleApiService.getStoredOrders();
+      setRecentOrders(stored);
+      if (initialOrderNumber) {
+        setQuery(initialOrderNumber);
+        performSearch(initialOrderNumber);
+      } else if (stored.length > 0 && !order) {
+        // Pre-fill latest order as convenient default
+        setQuery(stored[0].orderNumber);
+        performSearch(stored[0].orderNumber);
+      }
+    }
+  }, [isOpen, initialOrderNumber]);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) return;
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  const performSearch = async (trackingQuery: string) => {
+    if (!trackingQuery.trim()) return;
     setLoading(true);
-    const res = await CandleApiService.getOrderByTracking(query);
+    const res = await CandleApiService.getOrderByTracking(trackingQuery);
     setOrder(res || null);
     setSearched(true);
     setLoading(false);
   };
 
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    performSearch(query);
+  };
+
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-stone-950/75 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden my-auto border border-stone-200">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-stone-950/75 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200 cursor-pointer"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden my-auto border border-stone-200 cursor-default"
+      >
         {/* Header */}
         <div className="px-6 py-4 border-b border-stone-200 bg-[#FAF8F5] flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -69,6 +107,29 @@ export const OrderTrackerModal: React.FC<OrderTrackerModalProps> = ({
               {loading ? 'Searching...' : 'Track'}
             </button>
           </form>
+
+          {recentOrders.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap text-[11px] text-stone-500">
+              <span className="text-[10px] uppercase font-semibold text-stone-400">Recent:</span>
+              {recentOrders.slice(0, 3).map((ro) => (
+                <button
+                  key={ro.id}
+                  type="button"
+                  onClick={() => {
+                    setQuery(ro.orderNumber);
+                    performSearch(ro.orderNumber);
+                  }}
+                  className={`px-2.5 py-1 rounded-md border font-mono transition-colors cursor-pointer ${
+                    order?.orderNumber === ro.orderNumber
+                      ? 'bg-amber-100 border-amber-400 text-amber-900 font-semibold'
+                      : 'bg-stone-50 border-stone-200 hover:bg-stone-100 text-stone-700'
+                  }`}
+                >
+                  {ro.orderNumber}
+                </button>
+              ))}
+            </div>
+          )}
 
           {searched && !order && (
             <div className="p-6 text-center text-xs text-stone-500 bg-stone-50 rounded-xl">
@@ -129,6 +190,16 @@ export const OrderTrackerModal: React.FC<OrderTrackerModalProps> = ({
               </div>
             </div>
           )}
+          {/* Bottom dismiss button */}
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full py-2.5 px-4 bg-stone-100 hover:bg-stone-200 text-stone-700 hover:text-stone-900 rounded-xl text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer"
+            >
+              Close &amp; Return to Store
+            </button>
+          </div>
         </div>
       </div>
     </div>

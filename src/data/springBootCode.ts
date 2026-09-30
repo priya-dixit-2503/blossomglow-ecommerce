@@ -49,6 +49,164 @@ public class CandleProductController {
 }`
   },
   {
+    filename: 'CartController.java',
+    language: 'java',
+    description: 'Spring Boot REST Controller for Shopping Bag, Session Sync & Redis/MySQL Persistence',
+    code: `package com.blossomglow.backend.controller;
+
+import com.blossomglow.backend.dto.CartItemRequestDTO;
+import com.blossomglow.backend.dto.CartResponseDTO;
+import com.blossomglow.backend.service.CartService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping({"/api/cart", "/api/v1/cart"})
+@RequiredArgsConstructor
+@CrossOrigin(origins = {"http://localhost:3000", "https://*.run.app"})
+public class CartController {
+
+    private final CartService cartService;
+
+    @GetMapping
+    public ResponseEntity<CartResponseDTO> getCart(
+            @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String identifier = userDetails != null ? userDetails.getUsername() : sessionId;
+        return ResponseEntity.ok(cartService.getActiveCart(identifier));
+    }
+
+    @PostMapping("/items")
+    public ResponseEntity<CartResponseDTO> addItemToCart(
+            @Valid @RequestBody CartItemRequestDTO request,
+            @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String identifier = userDetails != null ? userDetails.getUsername() : sessionId;
+        return ResponseEntity.ok(cartService.addItem(identifier, request));
+    }
+
+    @PutMapping("/items/{itemId}")
+    public ResponseEntity<CartResponseDTO> updateItemQuantity(
+            @PathVariable String itemId,
+            @RequestBody CartItemRequestDTO request,
+            @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String identifier = userDetails != null ? userDetails.getUsername() : sessionId;
+        return ResponseEntity.ok(cartService.updateQuantity(identifier, itemId, request.getQuantity()));
+    }
+
+    @DeleteMapping("/items/{itemId}")
+    public ResponseEntity<CartResponseDTO> removeItem(
+            @PathVariable String itemId,
+            @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String identifier = userDetails != null ? userDetails.getUsername() : sessionId;
+        return ResponseEntity.ok(cartService.removeItem(identifier, itemId));
+    }
+
+    @DeleteMapping
+    public ResponseEntity<Void> clearCart(
+            @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String identifier = userDetails != null ? userDetails.getUsername() : sessionId;
+        cartService.clearCart(identifier);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/sync")
+    public ResponseEntity<CartResponseDTO> syncCart(
+            @RequestBody CartResponseDTO clientCart,
+            @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String identifier = userDetails != null ? userDetails.getUsername() : sessionId;
+        return ResponseEntity.ok(cartService.mergeCart(identifier, clientCart));
+    }
+}`
+  },
+  {
+    filename: 'WishlistController.java',
+    language: 'java',
+    description: 'Spring Boot REST Controller for Saved Fragrance Wishlist & Customer Sync',
+    code: `package com.blossomglow.backend.controller;
+
+import com.blossomglow.backend.dto.WishlistResponseDTO;
+import com.blossomglow.backend.dto.WishlistSyncRequestDTO;
+import com.blossomglow.backend.service.WishlistService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping({"/api/wishlist", "/api/v1/wishlist"})
+@RequiredArgsConstructor
+@CrossOrigin(origins = {"http://localhost:3000", "https://*.run.app"})
+public class WishlistController {
+
+    private final WishlistService wishlistService;
+
+    @GetMapping
+    public ResponseEntity<List<String>> getWishlist(
+            @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String identifier = userDetails != null ? userDetails.getUsername() : sessionId;
+        return ResponseEntity.ok(wishlistService.getWishlistProductIds(identifier));
+    }
+
+    @PostMapping("/{productId}")
+    public ResponseEntity<List<String>> addToWishlist(
+            @PathVariable String productId,
+            @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String identifier = userDetails != null ? userDetails.getUsername() : sessionId;
+        return ResponseEntity.ok(wishlistService.addProduct(identifier, productId));
+    }
+
+    @DeleteMapping("/{productId}")
+    public ResponseEntity<List<String>> removeFromWishlist(
+            @PathVariable String productId,
+            @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String identifier = userDetails != null ? userDetails.getUsername() : sessionId;
+        return ResponseEntity.ok(wishlistService.removeProduct(identifier, productId));
+    }
+
+    @PostMapping("/toggle/{productId}")
+    public ResponseEntity<List<String>> toggleWishlist(
+            @PathVariable String productId,
+            @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String identifier = userDetails != null ? userDetails.getUsername() : sessionId;
+        return ResponseEntity.ok(wishlistService.toggleProduct(identifier, productId));
+    }
+
+    @DeleteMapping
+    public ResponseEntity<Void> clearWishlist(
+            @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String identifier = userDetails != null ? userDetails.getUsername() : sessionId;
+        wishlistService.clearWishlist(identifier);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/sync")
+    public ResponseEntity<List<String>> syncWishlist(
+            @RequestBody WishlistSyncRequestDTO syncRequest,
+            @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String identifier = userDetails != null ? userDetails.getUsername() : sessionId;
+        return ResponseEntity.ok(wishlistService.mergeWishlist(identifier, syncRequest.getProductIds()));
+    }
+}`
+  },
+  {
     filename: 'Product.java',
     language: 'java',
     description: 'JPA Entity mapped to MySQL InnoDB tables with indexes',
@@ -133,37 +291,533 @@ public class Product {
 }`
   },
   {
+    filename: 'SecurityConfig.java',
+    language: 'java',
+    description: 'Spring Security 6 & Spring Boot 3.3 Production RBAC Security Configuration',
+    code: `package com.blossomglow.backend.config;
+
+import com.blossomglow.backend.security.JwtAuthenticationEntryPoint;
+import com.blossomglow.backend.security.JwtAuthenticationFilter;
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
+
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
+@RequiredArgsConstructor
+public class SecurityConfig {
+
+    private final JwtAuthenticationFilter jwtAuthFilter;
+    private final JwtAuthenticationEntryPoint unauthorizedHandler;
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .csrf(csrf -> csrf.disable()) // Disabled for stateless JWT REST API
+            .exceptionHandling(ex -> ex.authenticationEntryPoint(unauthorizedHandler))
+            .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                // =========================================================================
+                // 1. PUBLIC ENDPOINTS (No authentication required)
+                // =========================================================================
+                .requestMatchers(HttpMethod.GET,
+                    "/api/v1/orders/track/**", "/api/orders/track/**" // Tracking shipment by tracking number
+                ).permitAll()
+                .requestMatchers(HttpMethod.GET,
+                    "/api/v1/products/**", "/api/products/**",
+                    "/api/reviews/**"
+                ).permitAll()
+                .requestMatchers(HttpMethod.POST,
+                    "/api/v1/auth/**", "/api/auth/**",
+                    "/api/contact/**"
+                ).permitAll()
+                .requestMatchers("/actuator/health", "/v3/api-docs/**", "/swagger-ui/**").permitAll()
+
+                // =========================================================================
+                // 2. CUSTOMER ENDPOINTS (Requires authenticated ROLE_CUSTOMER or ROLE_ADMIN)
+                // =========================================================================
+                // Order Placement: Only authenticated customers can place orders
+                .requestMatchers(HttpMethod.POST,
+                    "/api/v1/orders", "/api/orders",
+                    "/api/v1/orders/checkout", "/api/orders/checkout"
+                ).hasAnyRole("CUSTOMER", "ADMIN")
+
+                // Customer Order History: Customers can ONLY see their own orders
+                .requestMatchers(HttpMethod.GET,
+                    "/api/v1/orders/my-orders", "/api/orders/my-orders"
+                ).hasAnyRole("CUSTOMER", "ADMIN")
+
+                // Specific Order View: Customer can ONLY access their own order (verified via @orderSecurity)
+                .requestMatchers(HttpMethod.GET,
+                    "/api/v1/orders/{id}", "/api/orders/{id}"
+                ).authenticated()
+
+                // Shopping Cart & Wishlist
+                .requestMatchers("/api/v1/cart/**", "/api/cart/**").permitAll() // session fallback / authenticated sync
+                .requestMatchers("/api/v1/wishlist/**", "/api/wishlist/**").permitAll()
+
+                // =========================================================================
+                // 3. ADMIN ENDPOINTS (Requires ROLE_ADMIN)
+                // =========================================================================
+                // List all customer orders across the platform
+                .requestMatchers(HttpMethod.GET,
+                    "/api/v1/orders", "/api/orders"
+                ).hasRole("ADMIN")
+
+                // Update order fulfillment/shipping status
+                .requestMatchers(HttpMethod.PUT,
+                    "/api/v1/orders/*/status", "/api/orders/*/status"
+                ).hasRole("ADMIN")
+
+                // Order deletion/cancellation by admin
+                .requestMatchers(HttpMethod.DELETE,
+                    "/api/v1/orders/*", "/api/orders/*"
+                ).hasRole("ADMIN")
+
+                // Product catalog management
+                .requestMatchers(HttpMethod.POST, "/api/v1/products/**", "/api/products/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/v1/products/**", "/api/products/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/v1/products/**", "/api/products/**").hasRole("ADMIN")
+
+                // All other requests require authentication
+                .anyRequest().authenticated()
+            );
+
+        http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOriginPatterns(List.of("http://localhost:3000", "https://*.run.app"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Session-ID", "X-Requested-With"));
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
+}`
+  },
+  {
     filename: 'OrderController.java',
     language: 'java',
-    description: 'Checkout, Order Creation and Payment Gateway Webhook Endpoint',
+    description: 'Spring Boot REST Controller with Strict PUBLIC, CUSTOMER, and ADMIN RBAC',
     code: `package com.blossomglow.backend.controller;
 
 import com.blossomglow.backend.dto.OrderRequestDTO;
 import com.blossomglow.backend.dto.OrderResponseDTO;
+import com.blossomglow.backend.dto.OrderStatusUpdateDTO;
 import com.blossomglow.backend.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
-@RequestMapping("/api/v1/orders")
+@RequestMapping({"/api/v1/orders", "/api/orders"})
 @RequiredArgsConstructor
 @CrossOrigin(origins = {"http://localhost:3000", "https://*.run.app"})
 public class OrderController {
 
     private final OrderService orderService;
 
-    @PostMapping("/checkout")
-    public ResponseEntity<OrderResponseDTO> createOrder(@Valid @RequestBody OrderRequestDTO request) {
-        OrderResponseDTO createdOrder = orderService.processOrder(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdOrder);
+    // =========================================================================
+    // 1. CUSTOMER: Place Order (Authenticated customer only)
+    // =========================================================================
+    @PostMapping
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
+    public ResponseEntity<OrderResponseDTO> createOrder(
+            @Valid @RequestBody OrderRequestDTO request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        // Automatically tie order to the authenticated customer principal
+        OrderResponseDTO created = orderService.processCustomerOrder(request, userDetails.getUsername());
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
+    // =========================================================================
+    // 2. CUSTOMER: View Own Orders (Customers only see their own orders)
+    // =========================================================================
+    @GetMapping("/my-orders")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
+    public ResponseEntity<List<OrderResponseDTO>> getMyOrders(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        // Queries exclusively orders belonging to the authenticated customer
+        return ResponseEntity.ok(orderService.findOrdersByCustomerEmail(userDetails.getUsername()));
+    }
+
+    // =========================================================================
+    // 3. CUSTOMER / ADMIN: View Specific Order by ID (Owner verification)
+    // =========================================================================
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @orderSecurity.isOrderOwner(#id, authentication)")
+    public ResponseEntity<OrderResponseDTO> getOrderById(
+            @PathVariable Long id) {
+        // Method security verifies: either ADMIN or order owner matching authentication.getName()
+        return ResponseEntity.ok(orderService.getOrderById(id));
+    }
+
+    // =========================================================================
+    // 4. PUBLIC: Track Order by Tracking Number (No authentication required)
+    // =========================================================================
     @GetMapping("/track/{trackingNumber}")
-    public ResponseEntity<OrderResponseDTO> trackOrder(@PathVariable String trackingNumber) {
+    public ResponseEntity<OrderResponseDTO> trackOrder(
+            @PathVariable String trackingNumber) {
+        // Public tracking: returns shipment milestones while masking sensitive billing details
         return ResponseEntity.ok(orderService.trackOrderByNumber(trackingNumber));
+    }
+
+    // =========================================================================
+    // 5. ADMIN ONLY: Retrieve All Orders Across the Platform
+    // =========================================================================
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<OrderResponseDTO>> getAllOrdersForAdmin() {
+        return ResponseEntity.ok(orderService.getAllOrdersForAdmin());
+    }
+
+    // =========================================================================
+    // 6. ADMIN ONLY: Update Order Status (Fulfillment / Dispatch / Delivery)
+    // =========================================================================
+    @PutMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<OrderResponseDTO> updateOrderStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody OrderStatusUpdateDTO statusUpdate) {
+        return ResponseEntity.ok(orderService.updateStatus(id, statusUpdate.getStatus()));
+    }
+}`
+  },
+  {
+    filename: 'OrderSecurityService.java',
+    language: 'java',
+    description: 'Spring Security Bean enforcing Customer Data Isolation & Ownership Checks',
+    code: `package com.blossomglow.backend.security;
+
+import com.blossomglow.backend.model.Order;
+import com.blossomglow.backend.repository.OrderRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Service;
+
+import java.util.Optional;
+
+@Service("orderSecurity")
+@RequiredArgsConstructor
+public class OrderSecurityService {
+
+    private final OrderRepository orderRepository;
+
+    /**
+     * Verifies that the order exists and strictly belongs to the authenticated customer principal.
+     * Prevents Insecure Direct Object Reference (IDOR) attacks across customer accounts.
+     */
+    public boolean isOrderOwner(Long orderId, Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return false;
+        }
+
+        String principalUsername = authentication.getName();
+        Optional<Order> orderOpt = orderRepository.findById(orderId);
+
+        if (orderOpt.isEmpty()) {
+            return false;
+        }
+
+        Order order = orderOpt.get();
+        // Match customer email against the authenticated principal username
+        return order.getCustomerEmail() != null &&
+               order.getCustomerEmail().equalsIgnoreCase(principalUsername);
+    }
+}`
+  },
+  {
+    filename: 'OrderRequestDTO.java',
+    language: 'java',
+    description: 'Authoritative Order Request DTO: Client never provides prices, discounts, shipping, or totals',
+    code: `package com.blossomglow.backend.dto;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
+import lombok.*;
+
+import java.util.List;
+
+/**
+ * PRODUCTION SECURITY PATTERN:
+ * Stop Trusting Frontend Prices.
+ * 
+ * Notice: This DTO deliberately omits price, subtotal, discount, shippingFee, and total.
+ * The server is the SOLE authority for product pricing, inventory validation,
+ * discount coupon verification, shipping fees, and grand totals.
+ */
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class OrderRequestDTO {
+
+    @NotEmpty(message = "Order items list cannot be empty")
+    @Valid
+    private List<OrderItemRequestDTO> items;
+
+    // Optional coupon code - validated strictly on the backend against promotion database
+    private String couponCode;
+
+    @NotNull(message = "Customer details are required")
+    @Valid
+    private CustomerInfoDTO customerInfo;
+
+    @NotBlank(message = "Payment method is required")
+    private String paymentMethod;
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class OrderItemRequestDTO {
+        @NotNull(message = "Product ID is required")
+        private Long productId;
+
+        @NotNull(message = "Quantity is required")
+        @Min(value = 1, message = "Quantity must be at least 1")
+        @Max(value = 50, message = "Exceeded purchase limit of 50 units per order")
+        private Integer quantity;
+
+        private String selectedVessel;
+        private String selectedWick;
+        private String selectedSize;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class CustomerInfoDTO {
+        @NotBlank(message = "Full name is required")
+        private String fullName;
+
+        @NotBlank(message = "Phone number is required")
+        private String phone;
+
+        @NotBlank(message = "Shipping address is required")
+        private String shippingAddress;
+
+        @NotBlank(message = "City is required")
+        private String city;
+
+        @NotBlank(message = "State is required")
+        private String state;
+
+        @NotBlank(message = "Pincode is required")
+        private String pincode;
+
+        private String specialInstructions;
+    }
+}`
+  },
+  {
+    filename: 'OrderServiceImpl.java',
+    language: 'java',
+    description: 'Authoritative Pricing Engine, Stock Locking, Coupon Validation & Total Recalculation Service',
+    code: `package com.blossomglow.backend.service.impl;
+
+import com.blossomglow.backend.dto.OrderRequestDTO;
+import com.blossomglow.backend.dto.OrderResponseDTO;
+import com.blossomglow.backend.exception.InsufficientStockException;
+import com.blossomglow.backend.exception.ResourceNotFoundException;
+import com.blossomglow.backend.model.Order;
+import com.blossomglow.backend.model.OrderItem;
+import com.blossomglow.backend.model.Product;
+import com.blossomglow.backend.repository.OrderRepository;
+import com.blossomglow.backend.repository.ProductRepository;
+import com.blossomglow.backend.service.OrderService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class OrderServiceImpl implements OrderService {
+
+    private final ProductRepository productRepository;
+    private final OrderRepository orderRepository;
+
+    /**
+     * AUTHORITATIVE ORDER CREATION:
+     * Never trust the browser for:
+     * 1. Product price: read directly from database (Product entity)
+     * 2. Quantity: validated >= 1 and <= 50
+     * 3. Stock: atomically validated with pessimistic write locks and decremented
+     * 4. Discount: evaluated against authoritative promotion rules
+     * 5. Shipping: computed based on authoritative subtotal
+     * 6. Total: strictly derived as (subtotal - discount + shipping)
+     */
+    @Override
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    public OrderResponseDTO processCustomerOrder(OrderRequestDTO request, String authenticatedEmail) {
+        log.info("Processing authoritative order for customer: {}", authenticatedEmail);
+
+        BigDecimal authoritativeSubtotal = BigDecimal.ZERO;
+        List<OrderItem> orderItems = new ArrayList<>();
+
+        // 1. Process each item: validate existence, lock stock, retrieve DB price
+        for (OrderRequestDTO.OrderItemRequestDTO itemReq : request.getItems()) {
+            // Find product with pessimistic write lock to prevent race conditions during checkout
+            Product product = productRepository.findByIdWithPessimisticLock(itemReq.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + itemReq.getProductId()));
+
+            // =================================================================
+            // BUSINESS RULE: Reject if Requested quantity > available stock
+            // =================================================================
+            int availableStock = product.getStockQuantity() != null ? product.getStockQuantity() : 0;
+            if (!Boolean.TRUE.equals(product.getInStock()) || availableStock <= 0) {
+                throw new InsufficientStockException(String.format(
+                        "Product '%s' is currently out of stock (Available: 0). Order rejected.",
+                        product.getName()
+                ));
+            }
+            if (itemReq.getQuantity() > availableStock) {
+                throw new InsufficientStockException(String.format(
+                        "Requested quantity (%d) exceeds available stock (%d) for product '%s'. Order rejected.",
+                        itemReq.getQuantity(), availableStock, product.getName()
+                ));
+            }
+
+            // =================================================================
+            // BUSINESS RULE: Stock = Stock - Ordered Quantity
+            // =================================================================
+            int updatedStock = availableStock - itemReq.getQuantity();
+            product.setStockQuantity(updatedStock);
+            product.setInStock(updatedStock > 0);
+            productRepository.save(product);
+
+            // Server-Determined Price (IGNORING ANY CLIENT VALUES)
+            BigDecimal unitPrice = product.getPrice();
+            if ("Grande (450g)".equalsIgnoreCase(itemReq.getSelectedSize())) {
+                unitPrice = unitPrice.multiply(BigDecimal.valueOf(1.6)).setScale(2, RoundingMode.HALF_UP);
+            } else if ("Petite Votive (90g)".equalsIgnoreCase(itemReq.getSelectedSize())) {
+                unitPrice = unitPrice.multiply(BigDecimal.valueOf(0.6)).setScale(2, RoundingMode.HALF_UP);
+            }
+
+            BigDecimal itemTotal = unitPrice.multiply(BigDecimal.valueOf(itemReq.getQuantity()));
+            authoritativeSubtotal = authoritativeSubtotal.add(itemTotal);
+
+            OrderItem orderItem = OrderItem.builder()
+                    .product(product)
+                    .quantity(itemReq.getQuantity())
+                    .unitPrice(unitPrice)
+                    .vesselColor(itemReq.getSelectedVessel() != null ? itemReq.getSelectedVessel() : "Fluted Ivory")
+                    .wickType(itemReq.getSelectedWick() != null ? itemReq.getSelectedWick() : "Organic Cotton")
+                    .candleSize(itemReq.getSelectedSize() != null ? itemReq.getSelectedSize() : "Standard (240g)")
+                    .build();
+
+            orderItems.add(orderItem);
+        }
+
+        // 2. Authoritative Server-Side Discount Calculation
+        BigDecimal authoritativeDiscount = BigDecimal.ZERO;
+        if (request.getCouponCode() != null && !request.getCouponCode().isBlank()) {
+            String code = request.getCouponCode().trim().toUpperCase();
+            if ("GLOW10".equals(code) || "AURAGLOW".equals(code)) {
+                authoritativeDiscount = authoritativeSubtotal.multiply(BigDecimal.valueOf(0.10)).setScale(2, RoundingMode.HALF_UP);
+            } else if ("AUTUMN20".equals(code)) {
+                if (authoritativeSubtotal.compareTo(BigDecimal.valueOf(1499)) >= 0) {
+                    authoritativeDiscount = authoritativeSubtotal.multiply(BigDecimal.valueOf(0.20)).setScale(2, RoundingMode.HALF_UP);
+                } else {
+                    log.warn("Coupon AUTUMN20 rejected: subtotal {} below minimum 1499", authoritativeSubtotal);
+                }
+            }
+        }
+
+        // 3. Authoritative Server-Side Shipping Calculation
+        // Free shipping on orders >= Rs. 999; otherwise flat Rs. 99 courier fee
+        BigDecimal authoritativeShippingFee = authoritativeSubtotal.compareTo(BigDecimal.valueOf(999)) >= 0
+                ? BigDecimal.ZERO
+                : BigDecimal.valueOf(99.00);
+
+        // 4. Authoritative Total Calculation
+        BigDecimal authoritativeTotal = authoritativeSubtotal
+                .subtract(authoritativeDiscount)
+                .add(authoritativeShippingFee)
+                .max(BigDecimal.ZERO);
+
+        // 5. Generate secure order & tracking numbers
+        String orderNumber = "BG-" + java.time.Year.now().getValue() + "-" + (100000 + (int)(Math.random() * 900000));
+        String trackingNumber = "BD-" + (100000000 + (long)(Math.random() * 900000000L));
+
+        Order order = Order.builder()
+                .orderNumber(orderNumber)
+                .trackingNumber(trackingNumber)
+                .customerName(request.getCustomerInfo().getFullName())
+                .customerEmail(authenticatedEmail) // Bound strictly to authenticated JWT user principal
+                .customerPhone(request.getCustomerInfo().getPhone())
+                .shippingAddress(request.getCustomerInfo().getShippingAddress())
+                .city(request.getCustomerInfo().getCity())
+                .state(request.getCustomerInfo().getState())
+                .pincode(request.getCustomerInfo().getPincode())
+                .subtotal(authoritativeSubtotal)
+                .discount(authoritativeDiscount)
+                .shippingFee(authoritativeShippingFee)
+                .totalAmount(authoritativeTotal)
+                .paymentMethod(request.getPaymentMethod())
+                .orderStatus("CONFIRMED")
+                .items(orderItems)
+                .build();
+
+        orderItems.forEach(i -> i.setOrder(order));
+        Order savedOrder = orderRepository.save(order);
+
+        return mapToDTO(savedOrder);
     }
 }`
   },

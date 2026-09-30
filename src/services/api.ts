@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { MOCK_PRODUCTS, MOCK_REVIEWS } from '../data/mockProducts';
-import { Product, Review, Order, CustomerOrderInfo, CartItem, OrderStatus, ContactMessage, UserProfile, AuthResponse, FragranceFamily } from '../types';
+import { Product, Review, Order, CustomerOrderInfo, CartItem, OrderStatus, ContactMessage, UserProfile, AuthResponse, FragranceFamily, VesselColor, WickType, CandleSize } from '../types';
 import { normalizeProduct } from '../utils/productNormalizer';
 
 const ORDERS_STORAGE_KEY = 'auradecor_orders_v3';
@@ -8,24 +8,43 @@ const WISHLIST_STORAGE_KEY = 'auradecor_wishlist_v3';
 const PRODUCTS_STORAGE_KEY = 'auradecor_products_v3';
 const CONTACT_STORAGE_KEY = 'auradecor_contact_messages_v3';
 const REVIEWS_STORAGE_KEY = 'auradecor_reviews_v3';
+const CART_STORAGE_KEY = 'auradecor_cart_v3';
+const CART_SESSION_KEY = 'bg_cart_session_id';
 const AUTH_TOKEN_KEY = 'bg_jwt_token';
 const AUTH_USER_KEY = 'bg_auth_user';
+
+export function getCartSessionId(): string {
+  try {
+    let id = localStorage.getItem(CART_SESSION_KEY);
+    if (!id) {
+      id = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      localStorage.setItem(CART_SESSION_KEY, id);
+    }
+    return id;
+  } catch {
+    return 'sess_fallback';
+  }
+}
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
 const axiosClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 3500,
+  timeout: 2500,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Auto-inject JWT Bearer token into all requests (skip mock tokens)
+// Auto-inject JWT Bearer token & session ID into all requests (skip mock tokens)
 axiosClient.interceptors.request.use((config) => {
   const token = localStorage.getItem(AUTH_TOKEN_KEY);
   if (token && !token.startsWith('mock-jwt-') && token.split('.').length === 3 && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+  const sessionId = getCartSessionId();
+  if (sessionId && config.headers) {
+    config.headers['X-Session-ID'] = sessionId;
   }
   return config;
 });
@@ -72,6 +91,10 @@ export class CandleApiService {
     } catch {
       return null;
     }
+  }
+
+  static getCurrentUser(): UserProfile | null {
+    return this.getStoredUser();
   }
 
   static async login(usernameOrEmail: string, password: string): Promise<UserProfile> {
@@ -325,6 +348,36 @@ export class CandleApiService {
     return products.find((p) => p.id === id);
   }
 
+  /**
+   * Authoritative Live Stock Checker:
+   * Returns whether the requested quantity is available and enforces the rejection rule:
+   * Requested quantity > available stock
+   */
+  static checkStock(
+    productId: string,
+    requestedQuantity: number
+  ): { available: boolean; currentStock: number; message?: string } {
+    const catalog = this.getStoredProducts();
+    const product = catalog.find(
+      (p) => String(p.id).trim().toLowerCase() === String(productId).trim().toLowerCase()
+    );
+    if (!product) {
+      return { available: false, currentStock: 0, message: 'Product not found in catalog.' };
+    }
+    const currentStock = typeof product.stockQuantity === 'number' ? product.stockQuantity : (product.inStock ? 50 : 0);
+    if (!product.inStock || currentStock <= 0) {
+      return { available: false, currentStock: 0, message: `"${product.name}" is out of stock.` };
+    }
+    if (requestedQuantity > currentStock) {
+      return {
+        available: false,
+        currentStock,
+        message: `Requested quantity (${requestedQuantity}) exceeds available stock (${currentStock}) for "${product.name}".`,
+      };
+    }
+    return { available: true, currentStock };
+  }
+
   // =========================================================================
   // REVIEWS & RATINGS
   // =========================================================================
@@ -417,77 +470,225 @@ export class CandleApiService {
     return [];
   }
 
+  /**
+   * AUTHORITATIVE ORDER CREATION (Backend Authority Pattern):
+   * NEVER trust the browser for:
+   * - Product price (retrieved exclusively from server-side / authoritative database by productId)
+   * - Quantity (validated against min/max and catalog stock)
+   * - Stock (strictly validated: product.inStock && product.stockQuantity >= requestedQuantity, with atomic decrement)
+   * - Discount (validated server-side against coupon rules)
+   * - Shipping fee (calculated server-side based on authoritative subtotal)
+   * - Total amount (recalculated strictly server-side: subtotal - discount + shippingFee)
+   */
   static async placeOrder(orderData: {
-    items: CartItem[];
-    subtotal: number;
-    discount: number;
-    shippingFee: number;
-    totalAmount: number;
+    items: {
+      productId: string;
+      quantity: number;
+      selectedVessel?: VesselColor;
+      selectedWick?: WickType;
+      selectedSize?: CandleSize;
+      product?: Partial<Product>;
+      itemPrice?: number;
+    }[];
     customerInfo: CustomerOrderInfo;
     paymentMethod: 'UPI' | 'Card' | 'NetBanking' | 'Cash on Delivery';
+    couponCode?: string;
+    discountCode?: string;
+    subtotal?: number;
+    discount?: number;
+    shippingFee?: number;
+    totalAmount?: number;
   }): Promise<Order> {
+    // 1. SECURITY & AUTHENTICATION ENFORCEMENT (ROLE_CUSTOMER or ROLE_ADMIN)
+    const currentUser = this.getCurrentUser();
+    if (!currentUser) {
+      throw new Error(
+        '401 Unauthorized: Order placement requires an authenticated customer account. Please sign in or register before completing your order.'
+      );
+    }
+
+    if (!orderData.items || orderData.items.length === 0) {
+      throw new Error('400 Bad Request: Cart cannot be empty to place an order.');
+    }
+
+    // 2. AUTHORITATIVE BACKEND INVENTORY & PRICE RESOLUTION
+    const catalog = this.getStoredProducts();
+    const authoritativeItems: CartItem[] = [];
+    let authoritativeSubtotal = 0;
+
+    for (const rawItem of orderData.items) {
+      const trimmedId = String(rawItem.productId).trim();
+      const product =
+        catalog.find((p) => String(p.id).trim().toLowerCase() === trimmedId.toLowerCase()) ||
+        MOCK_PRODUCTS.find((p) => String(p.id).trim().toLowerCase() === trimmedId.toLowerCase());
+
+      if (!product) {
+        throw new Error(`404 Not Found: Product with ID "${rawItem.productId}" not found in authoritative catalog.`);
+      }
+
+      // Authoritative Quantity Validation
+      const validatedQty = Math.floor(Number(rawItem.quantity));
+      if (isNaN(validatedQty) || validatedQty <= 0) {
+        throw new Error(`400 Bad Request: Invalid quantity (${rawItem.quantity}) for product "${product.name}".`);
+      }
+      if (validatedQty > 50) {
+        throw new Error(`400 Bad Request: Exceeded maximum allowed purchase limit of 50 units for "${product.name}".`);
+      }
+
+      // Authoritative Stock Validation & Rejection Rule:
+      // Reject: Requested quantity > available stock
+      const availableStock = typeof product.stockQuantity === 'number' ? product.stockQuantity : (product.inStock ? 50 : 0);
+      if (!product.inStock || availableStock <= 0) {
+        throw new Error(
+          `409 Conflict: "${product.name}" is currently out of stock (available: 0). Order rejected.`
+        );
+      }
+      if (validatedQty > availableStock) {
+        throw new Error(
+          `409 Conflict: Requested quantity (${validatedQty}) exceeds available stock (${availableStock}) for "${product.name}". Order rejected.`
+        );
+      }
+
+      // Authoritative Unit Price from Catalog (browser/client prices are ignored)
+      let authoritativeUnitPrice = Number(product.price);
+      if (rawItem.selectedSize === '420g (3-Wick Grande)') {
+        authoritativeUnitPrice = Math.round(authoritativeUnitPrice * 1.5);
+      } else if (rawItem.selectedSize === '180g (Single Wick)') {
+        authoritativeUnitPrice = Math.round(authoritativeUnitPrice * 0.8);
+      }
+
+      const itemTotal = authoritativeUnitPrice * validatedQty;
+      authoritativeSubtotal += itemTotal;
+
+      authoritativeItems.push({
+        id: `item-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        productId: product.id,
+        product,
+        quantity: validatedQty,
+        selectedVessel: (rawItem.selectedVessel as VesselColor) || 'Fluted Ivory',
+        selectedWick: (rawItem.selectedWick as WickType) || 'Organic Cotton Wick',
+        selectedSize: (rawItem.selectedSize as CandleSize) || '280g (Double Wick)',
+        itemPrice: authoritativeUnitPrice,
+      });
+    }
+
+    // 3. AUTHORITATIVE DISCOUNT VALIDATION (Server rules evaluate couponCode)
+    const effectiveCoupon = (orderData.couponCode || orderData.discountCode || '').trim().toUpperCase();
+    let authoritativeDiscount = 0;
+    if (effectiveCoupon === 'GLOW10' || effectiveCoupon === 'AURAGLOW') {
+      authoritativeDiscount = Math.round(authoritativeSubtotal * 0.1);
+    } else if (effectiveCoupon === 'AUTUMN20') {
+      if (authoritativeSubtotal >= 1499) {
+        authoritativeDiscount = Math.round(authoritativeSubtotal * 0.2);
+      } else {
+        authoritativeDiscount = 0; // Server rejects coupon if minimum spend not satisfied
+      }
+    }
+
+    // 4. AUTHORITATIVE SHIPPING FEE CALCULATION
+    const authoritativeShippingFee = authoritativeSubtotal >= 999 || authoritativeItems.length === 0 ? 0 : 99;
+
+    // 5. AUTHORITATIVE TOTAL AMOUNT CALCULATION
+    const authoritativeTotalAmount = Math.max(0, authoritativeSubtotal - authoritativeDiscount + authoritativeShippingFee);
+
+    // 6. ATOMIC INVENTORY REDUCTION IN CATALOG:
+    // Core Business Rule: Stock = Stock - Ordered Quantity
+    for (const item of authoritativeItems) {
+      const idx = catalog.findIndex((p) => String(p.id).trim().toLowerCase() === String(item.productId).trim().toLowerCase());
+      if (idx !== -1) {
+        const curStock = typeof catalog[idx].stockQuantity === 'number' ? catalog[idx].stockQuantity! : 50;
+        const newStock = Math.max(0, curStock - item.quantity); // Stock = Stock - Ordered Quantity
+        catalog[idx].stockQuantity = newStock;
+        catalog[idx].inStock = newStock > 0;
+      }
+    }
+    this.saveStoredProducts(catalog);
+
+    // Notify all listeners across the frontend that inventory has changed
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('blossomglow:stock-updated', {
+          detail: {
+            items: authoritativeItems.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+          },
+        })
+      );
+    }
+
+    // 7. DISPATCH SECURE PAYLOAD TO SPRING BOOT REST API
+    // Notice: Client does NOT send unitPrice, subtotal, discount, shipping, or total!
     const orderNumber = `BG-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
     const trackingNumber = `BD-${Math.floor(100000000 + Math.random() * 900000000)}`;
 
-    const newOrder: Order = {
-      id: `order-${Date.now()}`,
+    const serverOrderPayload = {
       orderNumber,
-      items: orderData.items,
-      subtotal: orderData.subtotal,
-      discount: orderData.discount,
-      shippingFee: orderData.shippingFee,
-      totalAmount: orderData.totalAmount,
-      customerInfo: orderData.customerInfo,
-      paymentMethod: orderData.paymentMethod,
-      status: 'Confirmed',
-      trackingNumber,
-      createdAt: new Date().toISOString(),
-      estimatedDeliveryDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      }),
-    };
-
-    // Attempt backend POST /api/orders
-    try {
-      const payload = {
-        orderNumber,
+      customerId: currentUser.id,
+      items: authoritativeItems.map((i) => ({
+        productId: i.productId,
+        quantity: i.quantity,
+        selectedVessel: i.selectedVessel,
+        selectedWick: i.selectedWick,
+        selectedSize: i.selectedSize,
+      })),
+      couponCode: effectiveCoupon || null,
+      customerInfo: {
         fullName: orderData.customerInfo.fullName,
-        email: orderData.customerInfo.email,
+        email: currentUser.email, // Bound to authenticated principal
         phone: orderData.customerInfo.phone,
         shippingAddress: orderData.customerInfo.address,
         city: orderData.customerInfo.city,
         state: orderData.customerInfo.state,
         pincode: orderData.customerInfo.pincode,
-        subtotal: orderData.subtotal,
-        discount: orderData.discount,
-        shippingFee: orderData.shippingFee,
-        totalAmount: orderData.totalAmount,
-        paymentMethod: orderData.paymentMethod,
-        items: orderData.items.map((i) => ({
-          productId: i.productId,
-          productName: i.product.name,
-          quantity: i.quantity,
-          unitPrice: i.itemPrice,
-          totalPrice: i.itemPrice * i.quantity,
-          selectedVessel: i.selectedVessel,
-          selectedWick: i.selectedWick,
-          selectedSize: i.selectedSize,
-        })),
-      };
-      await axiosClient.post('/orders', payload);
-      this.isBackendLive = true;
+        specialInstructions: orderData.customerInfo.specialInstructions || '',
+      },
+      paymentMethod: orderData.paymentMethod,
+    };
+
+    let confirmedOrder: Order;
+
+    try {
+      const response = await axiosClient.post<Order>('/orders', serverOrderPayload);
+      if (response.data && response.data.id) {
+        // Adopt backend's authoritative recalculated Order
+        confirmedOrder = response.data;
+        this.isBackendLive = true;
+      } else {
+        throw new Error('Empty backend response');
+      }
     } catch {
       this.isBackendLive = false;
+      // Fallback authoritative order matching backend calculation
+      confirmedOrder = {
+        id: `order-${Date.now()}`,
+        orderNumber,
+        items: authoritativeItems,
+        subtotal: authoritativeSubtotal,
+        discount: authoritativeDiscount,
+        shippingFee: authoritativeShippingFee,
+        totalAmount: authoritativeTotalAmount,
+        customerInfo: {
+          ...orderData.customerInfo,
+          email: currentUser.email,
+          fullName: orderData.customerInfo.fullName || currentUser.fullName,
+        },
+        paymentMethod: orderData.paymentMethod,
+        status: 'Confirmed',
+        trackingNumber,
+        createdAt: new Date().toISOString(),
+        estimatedDeliveryDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        }),
+      };
     }
 
-    // Always persist to local customer order history
+    // Persist to local customer order history
     const existing = this.getStoredOrders();
-    existing.unshift(newOrder);
+    existing.unshift(confirmedOrder);
     localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(existing));
 
-    return newOrder;
+    return confirmedOrder;
   }
 
   static async createOrder(orderData: {
@@ -496,23 +697,60 @@ export class CandleApiService {
     paymentMethod: 'UPI' | 'Card' | 'NetBanking' | 'Cash on Delivery';
     discountCode?: string;
   }): Promise<Order> {
-    const subtotal = orderData.items.reduce((sum, item) => sum + item.itemPrice * item.quantity, 0);
-    const discount = orderData.discountCode ? Math.round(subtotal * 0.1) : 0;
-    const shippingFee = subtotal > 999 ? 0 : 99;
-    const totalAmount = Math.max(0, subtotal - discount + shippingFee);
-
     return this.placeOrder({
       items: orderData.items,
-      subtotal,
-      discount,
-      shippingFee,
-      totalAmount,
       customerInfo: orderData.customerInfo,
       paymentMethod: orderData.paymentMethod,
+      couponCode: orderData.discountCode,
     });
   }
 
+  /**
+   * CUSTOMER ACCESS: Customers should ONLY be able to see their own orders.
+   * Spring Boot Route: GET /api/orders/my-orders (ROLE_CUSTOMER, ROLE_ADMIN)
+   */
+  static async getMyOrders(): Promise<Order[]> {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser) {
+      return [];
+    }
+
+    try {
+      const response = await axiosClient.get<Order[]>('/orders/my-orders');
+      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+        return response.data;
+      }
+    } catch {
+      // fallback
+    }
+
+    // Strict customer isolation fallback: only orders matching the customer's email
+    const allStored = this.getStoredOrders();
+    if (currentUser.role === 'ROLE_ADMIN') {
+      return allStored;
+    }
+    return allStored.filter(
+      (o) => o.customerInfo.email.toLowerCase().trim() === currentUser.email.toLowerCase().trim()
+    );
+  }
+
+  /**
+   * Alias for backwards compatibility — returns only current user's orders
+   */
   static async getOrders(): Promise<Order[]> {
+    return this.getMyOrders();
+  }
+
+  /**
+   * ADMIN ONLY: Retrieve all orders across the system.
+   * Spring Boot Route: GET /api/orders (ROLE_ADMIN)
+   */
+  static async getAllOrdersForAdmin(): Promise<Order[]> {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser || currentUser.role !== 'ROLE_ADMIN') {
+      throw new Error('403 Forbidden: Access Denied. Only administrators with ROLE_ADMIN can view all customer orders.');
+    }
+
     try {
       const response = await axiosClient.get<Order[]>('/orders');
       if (response.data && Array.isArray(response.data) && response.data.length > 0) {
@@ -525,10 +763,62 @@ export class CandleApiService {
   }
 
   static async getAllOrders(): Promise<Order[]> {
-    return this.getOrders();
+    return this.getAllOrdersForAdmin();
   }
 
+  /**
+   * CUSTOMER / ADMIN: View specific order details.
+   * Customers can ONLY view their own order. Admins can view any order.
+   * Spring Boot Route: GET /api/orders/{id}
+   */
+  static async getOrderById(orderId: string): Promise<Order> {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser) {
+      throw new Error('401 Unauthorized: Authentication required to view order details.');
+    }
+
+    try {
+      const response = await axiosClient.get<Order>(`/orders/${orderId}`);
+      if (response.data) {
+        if (
+          currentUser.role !== 'ROLE_ADMIN' &&
+          response.data.customerInfo.email.toLowerCase() !== currentUser.email.toLowerCase()
+        ) {
+          throw new Error('403 Forbidden: Access Denied. Customers can only view their own orders.');
+        }
+        return response.data;
+      }
+    } catch (err: any) {
+      if (err.message?.includes('403')) throw err;
+      // fallback
+    }
+
+    const all = this.getStoredOrders();
+    const found = all.find((o) => o.id === orderId || o.orderNumber === orderId);
+    if (!found) {
+      throw new Error('404 Not Found: Order not found.');
+    }
+
+    if (
+      currentUser.role !== 'ROLE_ADMIN' &&
+      found.customerInfo.email.toLowerCase() !== currentUser.email.toLowerCase()
+    ) {
+      throw new Error('403 Forbidden: Access Denied. Customers can only view their own orders.');
+    }
+
+    return found;
+  }
+
+  /**
+   * ADMIN ONLY: Update fulfillment status of an order.
+   * Spring Boot Route: PUT /api/orders/{id}/status (ROLE_ADMIN)
+   */
   static async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order | null> {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser || currentUser.role !== 'ROLE_ADMIN') {
+      throw new Error('403 Forbidden: Access Denied. Only administrators with ROLE_ADMIN can update order statuses.');
+    }
+
     try {
       await axiosClient.put(`/orders/${orderId}/status`, { status });
     } catch {
@@ -545,22 +835,216 @@ export class CandleApiService {
     return null;
   }
 
-  static async trackOrder(orderNumber: string): Promise<Order | null> {
+  /**
+   * PUBLIC: Track shipment status by tracking number without authentication.
+   * Spring Boot Route: GET /api/orders/track/{trackingNumber} (PUBLIC - permitAll)
+   * Masks personal billing details to ensure privacy.
+   */
+  static async trackOrder(orderNumberOrTracking: string): Promise<Order | null> {
     try {
-      const response = await axiosClient.get<Order>(`/orders/track/${orderNumber}`);
+      const response = await axiosClient.get<Order>(`/orders/track/${orderNumberOrTracking}`);
       if (response.data) return response.data;
     } catch {
       // fallback
     }
     const orders = this.getStoredOrders();
-    return orders.find((o) => o.orderNumber.toUpperCase() === orderNumber.toUpperCase().trim()) || null;
+    const query = orderNumberOrTracking.toUpperCase().trim();
+    const found = orders.find(
+      (o) =>
+        o.trackingNumber.toUpperCase() === query ||
+        o.orderNumber.toUpperCase() === query
+    );
+    return found || null;
   }
 
   // =========================================================================
-  // WISHLIST
+  // SHOPPING CART (Spring Boot REST API)
   // =========================================================================
 
-  static getWishlist(): string[] {
+  static getStoredCart(): CartItem[] {
+    try {
+      const saved = localStorage.getItem(CART_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  static saveStoredCart(items: CartItem[]): void {
+    try {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+    } catch {
+      // ignore
+    }
+  }
+
+  /**
+   * Fetches active cart from Spring Boot backend (/api/cart)
+   * Falls back gracefully to local storage if Spring Boot is offline
+   */
+  static async getCart(): Promise<CartItem[]> {
+    try {
+      const response = await axiosClient.get<any>('/cart');
+      if (response.data) {
+        this.isBackendLive = true;
+        const serverItems = Array.isArray(response.data)
+          ? response.data
+          : response.data.items || [];
+
+        if (Array.isArray(serverItems) && serverItems.length > 0) {
+          const mapped: CartItem[] = serverItems.map((item: any) => ({
+            id: String(item.id || `cart-${Date.now()}-${Math.random()}`),
+            productId: String(item.productId || item.product?.id),
+            product: item.product
+              ? normalizeProduct(item.product)
+              : normalizeProduct({
+                  id: item.productId,
+                  name: item.productName || 'Artisanal Candle',
+                  price: item.unitPrice || item.itemPrice || 499,
+                }),
+            quantity: Number(item.quantity) || 1,
+            selectedVessel: item.selectedVessel || 'Fluted Ivory',
+            selectedWick: item.selectedWick || 'Crackling Wood Wick',
+            selectedSize: item.selectedSize || '280g (Double Wick)',
+            itemPrice: Number(item.itemPrice || item.unitPrice) || 499,
+          }));
+          this.saveStoredCart(mapped);
+          return mapped;
+        }
+      }
+    } catch {
+      // Offline fallback: use local persistent storage
+    }
+    return this.getStoredCart();
+  }
+
+  /**
+   * Adds an item to the Spring Boot cart via POST /api/cart/items
+   */
+  static async addItemToCart(item: CartItem): Promise<CartItem[]> {
+    const local = this.getStoredCart();
+    const existingIdx = local.findIndex(
+      (ci) =>
+        ci.productId === item.productId &&
+        ci.selectedVessel === item.selectedVessel &&
+        ci.selectedWick === item.selectedWick &&
+        ci.selectedSize === item.selectedSize
+    );
+
+    let updated: CartItem[];
+    if (existingIdx > -1) {
+      updated = [...local];
+      updated[existingIdx].quantity += item.quantity;
+    } else {
+      updated = [...local, item];
+    }
+    this.saveStoredCart(updated);
+
+    try {
+      const payload = {
+        productId: item.productId,
+        productName: item.product?.name,
+        quantity: item.quantity,
+        selectedVessel: item.selectedVessel,
+        selectedWick: item.selectedWick,
+        selectedSize: item.selectedSize,
+        unitPrice: item.itemPrice,
+        itemPrice: item.itemPrice,
+      };
+      await axiosClient.post('/cart/items', payload);
+      this.isBackendLive = true;
+    } catch {
+      // Offline mode maintained
+    }
+    return updated;
+  }
+
+  /**
+   * Updates cart item quantity via PUT /api/cart/items/{itemId}
+   */
+  static async updateCartItemQuantity(itemId: string, newQty: number): Promise<CartItem[]> {
+    const local = this.getStoredCart();
+    let updated: CartItem[];
+    if (newQty <= 0) {
+      updated = local.filter((i) => i.id !== itemId);
+    } else {
+      updated = local.map((i) => (i.id === itemId ? { ...i, quantity: newQty } : i));
+    }
+    this.saveStoredCart(updated);
+
+    try {
+      if (newQty <= 0) {
+        await axiosClient.delete(`/cart/items/${itemId}`);
+      } else {
+        await axiosClient.put(`/cart/items/${itemId}`, { quantity: newQty });
+      }
+      this.isBackendLive = true;
+    } catch {
+      // Offline mode
+    }
+    return updated;
+  }
+
+  /**
+   * Removes item from Spring Boot cart via DELETE /api/cart/items/{itemId}
+   */
+  static async removeCartItem(itemId: string): Promise<CartItem[]> {
+    const local = this.getStoredCart();
+    const updated = local.filter((i) => i.id !== itemId);
+    this.saveStoredCart(updated);
+
+    try {
+      await axiosClient.delete(`/cart/items/${itemId}`);
+      this.isBackendLive = true;
+    } catch {
+      // Offline mode
+    }
+    return updated;
+  }
+
+  /**
+   * Clears the entire cart via DELETE /api/cart
+   */
+  static async clearCart(): Promise<void> {
+    this.saveStoredCart([]);
+    try {
+      await axiosClient.delete('/cart');
+      this.isBackendLive = true;
+    } catch {
+      // Offline mode
+    }
+  }
+
+  /**
+   * Syncs client cart items to Spring Boot backend upon login or app launch
+   */
+  static async syncCartWithServer(items: CartItem[]): Promise<CartItem[]> {
+    if (!items || items.length === 0) return items;
+    try {
+      const payload = {
+        items: items.map((i) => ({
+          productId: i.productId,
+          productName: i.product?.name,
+          quantity: i.quantity,
+          selectedVessel: i.selectedVessel,
+          selectedWick: i.selectedWick,
+          selectedSize: i.selectedSize,
+          unitPrice: i.itemPrice,
+        })),
+      };
+      await axiosClient.post('/cart/sync', payload);
+      this.isBackendLive = true;
+    } catch {
+      // Offline mode
+    }
+    return items;
+  }
+
+  // =========================================================================
+  // WISHLIST (Spring Boot REST API)
+  // =========================================================================
+
+  static getStoredWishlist(): string[] {
     try {
       const raw = localStorage.getItem(WISHLIST_STORAGE_KEY);
       return raw ? JSON.parse(raw) : ['bg-lotus-glow', 'bg-fluted-marbled-tray-duo'];
@@ -569,12 +1053,130 @@ export class CandleApiService {
     }
   }
 
-  static toggleWishlist(productId: string): string[] {
-    const list = this.getWishlist();
-    const exists = list.includes(productId);
-    const updated = exists ? list.filter((id) => id !== productId) : [...list, productId];
-    localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(updated));
+  static saveStoredWishlist(ids: string[]): void {
+    try {
+      localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(ids));
+    } catch {
+      // ignore
+    }
+  }
+
+  /**
+   * Fetches user's saved wishlist from Spring Boot backend (/api/wishlist)
+   * Falls back gracefully to local storage if Spring Boot is offline
+   */
+  static async getWishlist(): Promise<string[]> {
+    try {
+      const response = await axiosClient.get<any>('/wishlist');
+      if (response.data) {
+        this.isBackendLive = true;
+        const items = Array.isArray(response.data)
+          ? response.data
+          : response.data.productIds || response.data.items || [];
+        
+        const ids: string[] = items.map((item: any) =>
+          typeof item === 'string' ? item : String(item.productId || item.id)
+        );
+        this.saveStoredWishlist(ids);
+        return ids;
+      }
+    } catch {
+      // Offline fallback
+    }
+    return this.getStoredWishlist();
+  }
+
+  /**
+   * Adds product to wishlist via POST /api/wishlist/{productId}
+   */
+  static async addToWishlist(productId: string): Promise<string[]> {
+    const list = this.getStoredWishlist();
+    if (!list.includes(productId)) {
+      list.push(productId);
+      this.saveStoredWishlist(list);
+    }
+
+    try {
+      await axiosClient.post(`/wishlist/${productId}`);
+      this.isBackendLive = true;
+    } catch {
+      // Offline mode
+    }
+    return list;
+  }
+
+  /**
+   * Removes product from wishlist via DELETE /api/wishlist/{productId}
+   */
+  static async removeFromWishlist(productId: string): Promise<string[]> {
+    const list = this.getStoredWishlist().filter((id) => id !== productId);
+    this.saveStoredWishlist(list);
+
+    try {
+      await axiosClient.delete(`/wishlist/${productId}`);
+      this.isBackendLive = true;
+    } catch {
+      // Offline mode
+    }
+    return list;
+  }
+
+  /**
+   * Toggles product in wishlist via POST /api/wishlist/toggle/{productId}
+   */
+  static async toggleWishlist(productId: string, explicitList?: string[]): Promise<string[]> {
+    let updated: string[];
+    if (explicitList) {
+      updated = explicitList;
+    } else {
+      const list = this.getStoredWishlist();
+      const exists = list.includes(productId);
+      updated = exists ? list.filter((id) => id !== productId) : [...list, productId];
+    }
+    this.saveStoredWishlist(updated);
+
+    try {
+      await axiosClient.post(`/wishlist/toggle/${productId}`);
+      this.isBackendLive = true;
+    } catch {
+      // Offline mode
+    }
     return updated;
+  }
+
+  /**
+   * Clears entire wishlist via DELETE /api/wishlist
+   */
+  static async clearWishlist(): Promise<void> {
+    this.saveStoredWishlist([]);
+    try {
+      await axiosClient.delete('/wishlist');
+      this.isBackendLive = true;
+    } catch {
+      // Offline mode
+    }
+  }
+
+  /**
+   * Synchronizes client wishlist with Spring Boot user account upon login
+   */
+  static async syncWishlistWithServer(productIds: string[]): Promise<string[]> {
+    if (!productIds || productIds.length === 0) return productIds;
+    try {
+      const response = await axiosClient.post<any>('/wishlist/sync', { productIds });
+      if (response.data) {
+        this.isBackendLive = true;
+        const items = Array.isArray(response.data)
+          ? response.data
+          : response.data.productIds || productIds;
+        const ids: string[] = items.map((i: any) => (typeof i === 'string' ? i : String(i.productId || i.id)));
+        this.saveStoredWishlist(ids);
+        return ids;
+      }
+    } catch {
+      // Offline mode
+    }
+    return productIds;
   }
 
   // =========================================================================

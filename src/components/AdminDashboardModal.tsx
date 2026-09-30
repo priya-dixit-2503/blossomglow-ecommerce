@@ -79,7 +79,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
     try {
       const [prods, ords] = await Promise.all([
         CandleApiService.getProducts(),
-        CandleApiService.getOrders(),
+        CandleApiService.getAllOrdersForAdmin(),
       ]);
       setProducts(prods);
       setOrders(ords);

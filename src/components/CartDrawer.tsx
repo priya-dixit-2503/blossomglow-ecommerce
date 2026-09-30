@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, ShoppingBag, Trash2, ArrowRight, Sparkles, Check, Tag } from 'lucide-react';
+import { X, ShoppingBag, Trash2, ArrowRight, Sparkles, Check, Tag, Database, RefreshCw } from 'lucide-react';
 import { CartItem } from '../types';
 import { resolveImage } from '../utils/productNormalizer';
+import { CandleApiService } from '../services/api';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -66,16 +67,28 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col justify-between border-l border-stone-200 animate-in slide-in-from-right duration-300">
           {/* Header */}
           <div className="px-6 py-5 border-b border-stone-200/80 flex items-center justify-between bg-[#FAF8F5]">
-            <div className="flex items-center gap-2">
-              <ShoppingBag className="w-5 h-5 text-amber-800" />
-              <h2 className="font-editorial text-xl font-medium text-stone-900">Your Candle Bag</h2>
-              <span className="font-mono text-xs text-stone-500 font-semibold">
-                ({items.reduce((s, i) => s + i.quantity, 0)})
-              </span>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-100/70 rounded-xl text-amber-900">
+                <ShoppingBag className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-editorial text-xl font-medium text-stone-900">Your Candle Bag</h2>
+                  <span className="font-mono text-xs text-stone-500 font-semibold">
+                    ({items.reduce((s, i) => s + i.quantity, 0)})
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] text-stone-500 font-mono mt-0.5">
+                  <span className={`w-1.5 h-1.5 rounded-full ${CandleApiService.getLiveStatus() ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                  <span>{CandleApiService.getLiveStatus() ? 'Spring Boot 8080 Live' : 'Spring Boot REST Sync'}</span>
+                  <span className="text-stone-300">·</span>
+                  <span>/api/cart</span>
+                </div>
+              </div>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-full text-stone-500 hover:text-stone-900 hover:bg-stone-200/60 transition-colors"
+              className="p-1.5 rounded-full text-stone-500 hover:text-stone-900 hover:bg-stone-200/60 transition-colors cursor-pointer"
               aria-label="Close cart"
             >
               <X className="w-5 h-5" />

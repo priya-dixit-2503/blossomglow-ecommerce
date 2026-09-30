@@ -67,7 +67,7 @@ export default function App() {
   });
 
   const [wishlistIds, setWishlistIds] = useState<string[]>(() => {
-    return CandleApiService.getWishlist();
+    return CandleApiService.getStoredWishlist();
   });
 
   const [couponCode, setCouponCode] = useState('GLOW10');
@@ -99,7 +99,7 @@ export default function App() {
   const giftingSectionRef = useRef<HTMLDivElement>(null);
   const aboutSectionRef = useRef<HTMLDivElement>(null);
 
-  // Load products
+  // Load products & synchronize Cart and Wishlist with Spring Boot backend
   const fetchProducts = async () => {
     setLoading(true);
     const data = await CandleApiService.getProducts();
@@ -109,16 +109,83 @@ export default function App() {
 
   useEffect(() => {
     fetchProducts();
+    // Initialize & sync cart from Spring Boot REST API
+    CandleApiService.getCart().then((remoteCart) => {
+      if (remoteCart && remoteCart.length > 0) {
+        setCartItems(remoteCart);
+      }
+    });
+    // Initialize & sync wishlist from Spring Boot REST API
+    CandleApiService.getWishlist().then((remoteWishlist) => {
+      if (CandleApiService.getLiveStatus() && remoteWishlist && remoteWishlist.length > 0) {
+        setWishlistIds(remoteWishlist);
+      }
+    });
+
+    // Listen to live inventory stock reductions (Stock = Stock - Ordered Quantity)
+    const handleStockUpdate = () => {
+      fetchProducts();
+    };
+    window.addEventListener('blossomglow:stock-updated', handleStockUpdate);
+    return () => {
+      window.removeEventListener('blossomglow:stock-updated', handleStockUpdate);
+    };
   }, []);
+
+  // Sync client cart and wishlist with Spring Boot user account on login
+  useEffect(() => {
+    if (currentUser) {
+      if (cartItems.length > 0) {
+        CandleApiService.syncCartWithServer(cartItems);
+      }
+      if (wishlistIds.length > 0) {
+        CandleApiService.syncWishlistWithServer(wishlistIds);
+      }
+    }
+  }, [currentUser?.id]);
 
   // Persist cart
   useEffect(() => {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
   }, [cartItems]);
 
+  // Persist wishlist
+  useEffect(() => {
+    CandleApiService.saveStoredWishlist(wishlistIds);
+  }, [wishlistIds]);
+
   const handleToggleWishlist = (productId: string) => {
-    const updated = CandleApiService.toggleWishlist(productId);
-    setWishlistIds(updated);
+    setWishlistIds((prev) => {
+      const exists = prev.includes(productId);
+      const next = exists ? prev.filter((id) => id !== productId) : [...prev, productId];
+      CandleApiService.saveStoredWishlist(next);
+      CandleApiService.toggleWishlist(productId, next).catch(() => {});
+      return next;
+    });
+  };
+
+  const handleRemoveFromWishlist = (productId: string) => {
+    setWishlistIds((prev) => {
+      const next = prev.filter((id) => id !== productId);
+      CandleApiService.saveStoredWishlist(next);
+      CandleApiService.removeFromWishlist(productId).catch(() => {});
+      return next;
+    });
+  };
+
+  const handleClearWishlist = () => {
+    setWishlistIds([]);
+    CandleApiService.clearWishlist().catch(() => {});
+  };
+
+  const handleMoveAllWishlistToBag = () => {
+    const wishlistedProducts = products.filter((p) => wishlistIds.includes(p.id));
+    wishlistedProducts.forEach((p) => {
+      handleQuickAdd(p);
+    });
+    handleClearWishlist();
+    setIsWishlistOpen(false);
+    setIsCartOpen(true);
   };
 
   const handleAddToCart = (
@@ -140,13 +207,22 @@ export default function App() {
         item.selectedSize === size
     );
 
+    const existingQty = existingIndex > -1 ? cartItems[existingIndex].quantity : 0;
+    const requestedTotal = existingQty + quantity;
+    const stockCheck = CandleApiService.checkStock(product.id, requestedTotal);
+    if (!stockCheck.available) {
+      alert(stockCheck.message || `Requested quantity exceeds available stock for "${product.name}"`);
+      return;
+    }
+
+    let updatedList: CartItem[];
     if (existingIndex > -1) {
-      const updated = [...cartItems];
-      updated[existingIndex].quantity += quantity;
-      setCartItems(updated);
+      updatedList = [...cartItems];
+      updatedList[existingIndex].quantity += quantity;
+      setCartItems(updatedList);
     } else {
       const newItem: CartItem = {
-        id: `cart-${Date.now()}-${Math.random()}`,
+        id: `cart-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         productId: product.id,
         product,
         selectedVessel: vessel,
@@ -155,8 +231,23 @@ export default function App() {
         quantity,
         itemPrice,
       };
-      setCartItems([...cartItems, newItem]);
+      updatedList = [...cartItems, newItem];
+      setCartItems(updatedList);
     }
+
+    // Synchronize to Spring Boot Cart REST API
+    CandleApiService.addItemToCart({
+      id: `cart-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      productId: product.id,
+      product,
+      selectedVessel: vessel,
+      selectedWick: wick,
+      selectedSize: size,
+      quantity,
+      itemPrice,
+    }).then((synced) => {
+      if (synced && synced.length > 0) setCartItems(synced);
+    });
   };
 
   const handleQuickAdd = (product: Product) => {
@@ -170,51 +261,65 @@ export default function App() {
   };
 
   const handleAddCustomCandleToCart = (candleData: any) => {
+    if (candleData && candleData.product && candleData.selectedVessel) {
+      setCartItems((prev) => [...prev, candleData]);
+      setIsCartOpen(true);
+      return;
+    }
     const customProduct: Product = {
-      id: candleData.id,
-      name: candleData.name,
-      tagline: candleData.customLabel,
+      id: candleData.id || `custom-${Date.now()}`,
+      name: candleData.name || 'Bespoke Candle Creation',
+      tagline: candleData.customLabel || 'Personalized blend',
       category: 'Artisanal Decor',
       fragranceFamily: 'Woody & Amber',
-      price: candleData.price,
+      price: candleData.price || 1499,
       rating: 5.0,
       reviewsCount: 1,
-      image: candleData.image,
-      galleryImages: [candleData.image],
-      burnTimeHours: candleData.burnTimeHours,
-      weightGrams: candleData.weightGrams,
-      scentIntensity: candleData.scentIntensity,
-      scentPyramid: candleData.scentPyramid,
-      description: `Bespoke blend: ${candleData.scentPyramid.topNotes.join('/')} top, ${candleData.scentPyramid.heartNotes.join('/')} heart, ${candleData.scentPyramid.baseNotes.join('/')} base.`,
+      image: candleData.image || '/src/assets/images/bloom_rose_candles_1790142304223.jpg',
+      galleryImages: [candleData.image || '/src/assets/images/bloom_rose_candles_1790142304223.jpg'],
+      burnTimeHours: candleData.burnTimeHours || 65,
+      weightGrams: candleData.weightGrams || 280,
+      scentIntensity: candleData.scentIntensity || 5,
+      scentPyramid: candleData.scentPyramid || {
+        topNotes: ['Bergamot'],
+        heartNotes: ['Damask Rose'],
+        baseNotes: ['Mysore Sandalwood'],
+      },
+      description: candleData.description || 'Bespoke hand-poured candle.',
       artisanStory: 'Custom hand-blended creation.',
-      availableVessels: [candleData.vessel],
-      availableWicks: [candleData.wick],
+      availableVessels: [candleData.vessel || 'Frosted Amber'],
+      availableWicks: [candleData.wick || 'Crackling Wood Wick'],
       inStock: true,
-      waxType: candleData.waxType,
+      waxType: candleData.waxType || '100% Organic Soy Wax',
     };
 
     handleAddToCart(
       customProduct,
-      candleData.vessel,
-      candleData.wick,
-      candleData.size,
+      candleData.vessel || 'Frosted Amber',
+      candleData.wick || 'Crackling Wood Wick',
+      candleData.size || '280g (Double Wick)',
       1
     );
     setIsCartOpen(true);
   };
 
   const handleAddCustomHamperToCart = (hamperData: any) => {
+    if (hamperData && hamperData.product && hamperData.selectedVessel) {
+      setCartItems((prev) => [...prev, hamperData]);
+      setIsCartOpen(true);
+      return;
+    }
     const hamperProduct: Product = {
-      id: hamperData.id,
-      name: hamperData.name,
-      tagline: `Bespoke curation: ${hamperData.selectedProducts.map((p: any) => p.name).join(', ')}`,
+      id: hamperData.id || `hamper-${Date.now()}`,
+      name: hamperData.name || 'Curated Atelier Hamper',
+      tagline: hamperData.tagline || 'Artisan Festive Curation',
       category: 'Gift Hampers',
       fragranceFamily: 'Floral',
-      price: hamperData.price,
+      price: hamperData.price || 1999,
       rating: 5.0,
       reviewsCount: 1,
-      image: hamperData.image,
-      galleryImages: [hamperData.image],
+      image: hamperData.image || '/src/assets/images/gilded_lotus_hamper_1790142539828.jpg',
+      galleryImages: [hamperData.image || '/src/assets/images/gilded_lotus_hamper_1790142539828.jpg'],
       burnTimeHours: 120,
       weightGrams: 850,
       scentIntensity: 5,
@@ -223,7 +328,7 @@ export default function App() {
         heartNotes: ['Jasmine Sambac', 'Lotus Nectar'],
         baseNotes: ['Mysore Sandalwood', 'Amber'],
       },
-      description: `Includes handcrafted gift box with ribbon and ${hamperData.selectedProducts.length} artisanal candles.`,
+      description: hamperData.description || 'Includes handcrafted gift box with ribbon and artisanal candles.',
       artisanStory: 'Hand-curated festive hamper.',
       availableVessels: ['Fluted Ivory'],
       availableWicks: ['Crackling Wood Wick'],
@@ -245,11 +350,25 @@ export default function App() {
       handleRemoveCartItem(itemId);
       return;
     }
+    const targetItem = cartItems.find((i) => i.id === itemId);
+    if (targetItem && newQty > targetItem.quantity) {
+      const stockCheck = CandleApiService.checkStock(targetItem.productId, newQty);
+      if (!stockCheck.available) {
+        alert(stockCheck.message || `Requested quantity (${newQty}) exceeds available stock (${stockCheck.currentStock})`);
+        return;
+      }
+    }
     setCartItems(cartItems.map((item) => (item.id === itemId ? { ...item, quantity: newQty } : item)));
+    CandleApiService.updateCartItemQuantity(itemId, newQty).then((updated) => {
+      if (updated) setCartItems(updated);
+    });
   };
 
   const handleRemoveCartItem = (itemId: string) => {
     setCartItems(cartItems.filter((item) => item.id !== itemId));
+    CandleApiService.removeCartItem(itemId).then((updated) => {
+      if (updated) setCartItems(updated);
+    });
   };
 
   const handleApplyCoupon = (code: string): boolean => {
@@ -482,7 +601,10 @@ export default function App() {
         isOpen={isWishlistOpen}
         onClose={() => setIsWishlistOpen(false)}
         wishlistIds={wishlistIds}
-        onRemoveFromWishlist={handleToggleWishlist}
+        products={products}
+        onRemoveFromWishlist={handleRemoveFromWishlist}
+        onClearWishlist={handleClearWishlist}
+        onMoveAllToBag={handleMoveAllWishlistToBag}
         onQuickAdd={handleQuickAdd}
         onSelectProduct={(p) => setSelectedProduct(p)}
       />
@@ -529,14 +651,23 @@ export default function App() {
         onClose={() => setIsCheckoutOpen(false)}
         items={cartItems}
         couponCode={couponCode}
+        currentUser={currentUser}
+        onOpenAuth={(mode) => {
+          setAuthInitialMode(mode);
+          setIsAuthOpen(true);
+        }}
         onOrderSuccess={(order) => {
           setLatestOrder(order);
           setCartItems([]);
+          CandleApiService.clearCart();
+          fetchProducts();
         }}
+        onTrackOrder={handleTrackOrder}
       />
 
       <OrderTrackerModal
         isOpen={isTrackingOpen}
+        initialOrderNumber={trackingInitialOrderNumber}
         onClose={() => {
           setIsTrackingOpen(false);
           setTrackingInitialOrderNumber(undefined);
@@ -546,6 +677,11 @@ export default function App() {
       <OrderHistoryModal
         isOpen={isOrderHistoryOpen}
         onClose={() => setIsOrderHistoryOpen(false)}
+        currentUser={currentUser}
+        onOpenAuth={(mode) => {
+          setAuthInitialMode(mode);
+          setIsAuthOpen(true);
+        }}
         onTrackOrder={handleTrackOrder}
       />
 
