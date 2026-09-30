@@ -1,13 +1,17 @@
 package com.blossomglow.backend.service;
 
 import com.blossomglow.backend.dto.ProductDTO;
+import com.blossomglow.backend.dto.ProductImageDTO;
 import com.blossomglow.backend.entity.Product;
+import com.blossomglow.backend.entity.ProductImage;
 import com.blossomglow.backend.exception.ResourceNotFoundException;
+import com.blossomglow.backend.repository.ProductImageRepository;
 import com.blossomglow.backend.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -16,6 +20,7 @@ import java.util.stream.Collectors;
 public class ProductService {
 
     private final ProductRepository productRepository;
+    private final ProductImageRepository productImageRepository;
 
     @Transactional(readOnly = true)
     public List<ProductDTO> getAllProducts(String category, String fragranceFamily, String search) {
@@ -74,6 +79,30 @@ public class ProductService {
                 .seasonRelease(dto.getSeasonRelease())
                 .build();
 
+        // Populate Product -> Product Images
+        int displayOrder = 1;
+        if (dto.getImageUrl() != null && !dto.getImageUrl().isBlank()) {
+            product.addImage(ProductImage.builder()
+                    .imageUrl(dto.getImageUrl())
+                    .altText(dto.getName() + " - Main View")
+                    .displayOrder(displayOrder++)
+                    .isPrimary(true)
+                    .build());
+        }
+
+        if (dto.getGalleryImages() != null) {
+            for (String imgUrl : dto.getGalleryImages()) {
+                if (imgUrl != null && !imgUrl.isBlank() && !imgUrl.equals(dto.getImageUrl())) {
+                    product.addImage(ProductImage.builder()
+                            .imageUrl(imgUrl)
+                            .altText(dto.getName() + " - Angle View " + displayOrder)
+                            .displayOrder(displayOrder++)
+                            .isPrimary(false)
+                            .build());
+                }
+            }
+        }
+
         Product saved = productRepository.save(product);
         return convertToDTO(saved);
     }
@@ -97,6 +126,30 @@ public class ProductService {
         if (dto.getIsBestSeller() != null) existing.setIsBestSeller(dto.getIsBestSeller());
         if (dto.getIsNewArrival() != null) existing.setIsNewArrival(dto.getIsNewArrival());
 
+        // Update gallery images if supplied
+        if (dto.getGalleryImages() != null && !dto.getGalleryImages().isEmpty()) {
+            existing.getImages().clear();
+            int displayOrder = 1;
+            if (dto.getImageUrl() != null && !dto.getImageUrl().isBlank()) {
+                existing.addImage(ProductImage.builder()
+                        .imageUrl(dto.getImageUrl())
+                        .altText(dto.getName() + " - Main View")
+                        .displayOrder(displayOrder++)
+                        .isPrimary(true)
+                        .build());
+            }
+            for (String imgUrl : dto.getGalleryImages()) {
+                if (imgUrl != null && !imgUrl.isBlank() && !imgUrl.equals(dto.getImageUrl())) {
+                    existing.addImage(ProductImage.builder()
+                            .imageUrl(imgUrl)
+                            .altText(dto.getName() + " - Gallery View " + displayOrder)
+                            .displayOrder(displayOrder++)
+                            .isPrimary(false)
+                            .build());
+                }
+            }
+        }
+
         Product updated = productRepository.save(existing);
         return convertToDTO(updated);
     }
@@ -110,6 +163,36 @@ public class ProductService {
     }
 
     public ProductDTO convertToDTO(Product p) {
+        List<String> gallery = new ArrayList<>();
+        List<ProductImageDTO> imageDTOs = new ArrayList<>();
+
+        // Architecture: Product -> Product Images -> Gallery
+        if (p.getImages() != null && !p.getImages().isEmpty()) {
+            for (ProductImage img : p.getImages()) {
+                if (img.getImageUrl() != null && !img.getImageUrl().isBlank()) {
+                    gallery.add(img.getImageUrl());
+                    imageDTOs.add(ProductImageDTO.builder()
+                            .id(img.getId())
+                            .imageUrl(img.getImageUrl())
+                            .altText(img.getAltText())
+                            .displayOrder(img.getDisplayOrder())
+                            .isPrimary(img.getIsPrimary())
+                            .build());
+                }
+            }
+        }
+
+        // Fallback: If product has no entries in product_images, use product.imageUrl
+        if (gallery.isEmpty() && p.getImageUrl() != null && !p.getImageUrl().isBlank()) {
+            gallery.add(p.getImageUrl());
+            imageDTOs.add(ProductImageDTO.builder()
+                    .imageUrl(p.getImageUrl())
+                    .altText(p.getName())
+                    .displayOrder(1)
+                    .isPrimary(true)
+                    .build());
+        }
+
         return ProductDTO.builder()
                 .id(p.getId())
                 .slug(p.getSlug())
@@ -122,7 +205,8 @@ public class ProductService {
                 .rating(p.getRating())
                 .reviewsCount(p.getReviewsCount())
                 .imageUrl(p.getImageUrl())
-                .galleryImages(p.getImageUrl() != null ? java.util.List.of(p.getImageUrl()) : java.util.List.of())
+                .galleryImages(gallery)
+                .productImages(imageDTOs)
                 .burnTimeHours(p.getBurnTimeHours())
                 .weightGrams(p.getWeightGrams())
                 .scentIntensity(p.getScentIntensity())

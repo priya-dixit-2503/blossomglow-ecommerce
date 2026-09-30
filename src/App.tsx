@@ -209,7 +209,7 @@ export default function App() {
 
     const existingQty = existingIndex > -1 ? cartItems[existingIndex].quantity : 0;
     const requestedTotal = existingQty + quantity;
-    const stockCheck = CandleApiService.checkStock(product.id, requestedTotal);
+    const stockCheck = CandleApiService.checkStock(product.id, requestedTotal, product);
     if (!stockCheck.available) {
       alert(stockCheck.message || `Requested quantity exceeds available stock for "${product.name}"`);
       return;
@@ -352,7 +352,7 @@ export default function App() {
     }
     const targetItem = cartItems.find((i) => i.id === itemId);
     if (targetItem && newQty > targetItem.quantity) {
-      const stockCheck = CandleApiService.checkStock(targetItem.productId, newQty);
+      const stockCheck = CandleApiService.checkStock(targetItem.productId, newQty, targetItem.product);
       if (!stockCheck.available) {
         alert(stockCheck.message || `Requested quantity (${newQty}) exceeds available stock (${stockCheck.currentStock})`);
         return;

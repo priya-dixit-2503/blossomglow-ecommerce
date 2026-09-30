@@ -139,14 +139,22 @@ export const OrderTrackerModal: React.FC<OrderTrackerModalProps> = ({
 
           {order && (
             <div className="space-y-6 animate-in fade-in">
-              <div className="p-4 bg-[#FAF8F5] rounded-xl border border-stone-200 text-xs flex justify-between items-center">
+              <div className="p-4 bg-[#FAF8F5] rounded-xl border border-stone-200 text-xs flex flex-wrap justify-between items-center gap-2">
                 <div>
-                  <span className="text-stone-400 block text-[10px] uppercase">Order Number</span>
+                  <span className="text-stone-400 block text-[10px] uppercase font-mono">Order Number</span>
                   <span className="font-mono font-bold text-stone-900 text-sm">{order.orderNumber}</span>
+                  {order.paymentId && (
+                    <span className="text-[10px] font-mono text-blue-900 block mt-0.5">
+                      Gateway ID: <strong>{order.paymentId}</strong>
+                    </span>
+                  )}
                 </div>
                 <div className="text-right">
-                  <span className="text-stone-400 block text-[10px] uppercase">Estimated Delivery</span>
+                  <span className="text-stone-400 block text-[10px] uppercase font-mono">Estimated Delivery</span>
                   <span className="font-medium text-amber-900">{order.estimatedDeliveryDate}</span>
+                  <span className="text-[10px] font-mono text-emerald-800 bg-emerald-100/80 px-1.5 py-0.5 rounded border border-emerald-300 block mt-0.5 w-fit ml-auto">
+                    {order.paymentStatus || 'Captured'} • {order.paymentMethod}
+                  </span>
                 </div>
               </div>
 

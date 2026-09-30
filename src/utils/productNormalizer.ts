@@ -21,6 +21,12 @@ const ASSET_LOOKUP: Record<string, string> = {
   'concrete-arch-clock': PRODUCT_ASSETS.concreteArchClock,
   'teddy-baby-shower': PRODUCT_ASSETS.teddyBabyShower,
   'baby-elephant': PRODUCT_ASSETS.babyElephant,
+  'abstract-thinkers': PRODUCT_ASSETS.abstractThinkers,
+  'abstract-thinker': PRODUCT_ASSETS.abstractThinkers,
+  'teddy-lotus-blossom': PRODUCT_ASSETS.teddyLotusBlossom,
+  'teddy-lotus': PRODUCT_ASSETS.teddyLotusBlossom,
+  'oceanic-seashell': PRODUCT_ASSETS.oceanicSeashell,
+  'conch-seashell': PRODUCT_ASSETS.oceanicSeashell,
 };
 
 /**
@@ -86,8 +92,11 @@ export function resolveImage(rawUrl?: string, slug?: string, name?: string): str
     if (n.includes('hollow arch')) return PRODUCT_ASSETS.hollowArchBudVase;
     if (n.includes('ripple') || n.includes('wavy')) return PRODUCT_ASSETS.wavyRippleTray;
     if (n.includes('clock')) return PRODUCT_ASSETS.concreteArchClock;
+    if (n.includes('teddy') && n.includes('lotus')) return PRODUCT_ASSETS.teddyLotusBlossom;
     if (n.includes('teddy')) return PRODUCT_ASSETS.teddyBabyShower;
     if (n.includes('elephant')) return PRODUCT_ASSETS.babyElephant;
+    if (n.includes('thinker')) return PRODUCT_ASSETS.abstractThinkers;
+    if (n.includes('seashell') || n.includes('conch') || n.includes('oceanic')) return PRODUCT_ASSETS.oceanicSeashell;
   }
 
   // 4. Return valid non-empty rawUrl or default to signature floral garden
@@ -107,23 +116,49 @@ export function normalizeProduct(raw: any): Product {
     return MOCK_PRODUCTS[0];
   }
 
-  const slug = raw.slug || (raw.id ? `bg-${raw.id}` : 'bg-product');
+  let rawId = raw.id !== undefined && raw.id !== null ? String(raw.id).trim() : (raw.slug ? String(raw.slug).trim() : '');
+  // Clean any repeated 'bg-' prefixes (e.g. bg-bg-baby-elephant -> bg-baby-elephant)
+  while (rawId.startsWith('bg-bg-')) {
+    rawId = 'bg-' + rawId.slice(6);
+  }
+  let slug = rawId || 'bg-product';
+
+  const cleanSlug = slug.toLowerCase().replace(/^bg-/, '');
+  const cleanRawId = rawId.toLowerCase().replace(/^bg-/, '');
+
   const matchingMock = MOCK_PRODUCTS.find(
     (m) =>
-      m.id === slug ||
-      m.id === raw.id ||
-      m.name.toLowerCase() === (raw.name || '').toLowerCase()
+      m.id.toLowerCase() === slug.toLowerCase() ||
+      m.id.toLowerCase() === rawId.toLowerCase() ||
+      m.id.toLowerCase().replace(/^bg-/, '') === cleanSlug ||
+      m.id.toLowerCase().replace(/^bg-/, '') === cleanRawId ||
+      m.name.toLowerCase().trim() === (raw.name || '').toLowerCase().trim()
   );
 
-  const rawImage = raw.image || raw.imageUrl;
-  const resolvedMainImage = resolveImage(rawImage, slug, raw.name);
+  if (matchingMock) {
+    slug = matchingMock.id;
+  }
 
-  // Resolve gallery images
+  // Authoritative Artisan Photo enforcement:
+  // If product belongs to the 18 atelier creations, ALWAYS use its official photograph
+  const resolvedMainImage = matchingMock
+    ? matchingMock.image
+    : resolveImage(raw.image || raw.imageUrl, slug, raw.name);
+
+  // Resolve gallery images from Product -> Product Images -> Gallery
   let resolvedGallery: string[] = [];
-  if (Array.isArray(raw.galleryImages) && raw.galleryImages.length > 0) {
-    resolvedGallery = raw.galleryImages.map((img: string) => resolveImage(img, slug, raw.name));
-  } else if (matchingMock && matchingMock.galleryImages && matchingMock.galleryImages.length > 0) {
+  const rawImagesList: string[] = Array.isArray(raw.product_images) && raw.product_images.length > 0
+    ? raw.product_images.map((pi: any) => pi.image_url || pi.imageUrl)
+    : Array.isArray(raw.productImages) && raw.productImages.length > 0
+    ? raw.productImages.map((pi: any) => pi.image_url || pi.imageUrl)
+    : Array.isArray(raw.galleryImages) && raw.galleryImages.length > 0
+    ? raw.galleryImages
+    : [];
+
+  if (matchingMock && matchingMock.galleryImages && matchingMock.galleryImages.length > 0) {
     resolvedGallery = matchingMock.galleryImages;
+  } else if (rawImagesList.length > 0) {
+    resolvedGallery = rawImagesList.map((img: string) => resolveImage(img, slug, raw.name));
   } else {
     resolvedGallery = [resolvedMainImage];
   }

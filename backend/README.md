@@ -73,11 +73,23 @@ VITE_API_BASE_URL=http://localhost:8080/api
 ### 2. Storefront APIs (Public)
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/api/products` | Get products with filters (`category`, `fragranceFamily`, `search`) |
+| `GET` | `/api/products` | Get products with filters (`category`, `fragranceFamily`, `search`). Returns full `galleryImages[]` and `product_images[]` from normalized schema. |
 | `GET` | `/api/products/{id}` | Get product details by ID |
 | `GET` | `/api/categories` | List candle collections & categories |
 | `GET` | `/api/reviews/product/{id}` | Get verified customer reviews for a product |
 | `POST` | `/api/reviews` | Submit a customer rating and review |
+
+---
+
+## 🖼️ Normalized Product Imagery Architecture
+To prevent duplicating image paths and ensure a 1-to-many normalized structure, the backend supports:
+```
+Product (1) ───< (N) ProductImage ───> Gallery [ ]
+```
+- **Table**: `product_images` (id, product_id, image_url, alt_text, display_order, is_primary, created_at)
+- **Entity**: `com.blossomglow.backend.entity.ProductImage`
+- **Repository**: `com.blossomglow.backend.repository.ProductImageRepository`
+- **DTO**: `ProductDTO` provides both `galleryImages: List<String>` and `product_images: List<ProductImageDTO>` for backward and forward compatibility.
 | `GET` | `/api/cart` | Get cart items (via `X-Session-Token` header) |
 | `POST` | `/api/cart` | Add product to cart with vessel & wick variants |
 | `PUT` | `/api/cart/{id}` | Update quantity of a cart item |
@@ -94,6 +106,9 @@ Default master credentials: `admin` / `blossomglow2026!`
 | `POST` | `/api/products` | Create a new candle creation |
 | `PUT` | `/api/products/{id}` | Update existing product details, price, or stock |
 | `DELETE` | `/api/products/{id}` | Remove a product |
+| `POST` | `/api/admin/categories` | Create a new candle collection category |
+| `PUT` | `/api/admin/categories/{id}` | Update category name, slug, description, image, or order |
+| `DELETE` | `/api/admin/categories/{id}` | Delete category collection |
 | `GET` | `/api/orders` | View all customer orders |
 | `PUT` | `/api/orders/{id}/status` | Update order status (`Pending`, `Confirmed`, `Preparing`, `Shipped`, `Delivered`, `Cancelled`) |
 | `GET` | `/api/admin/metrics` | View dashboard revenue, orders, and low-stock alerts |

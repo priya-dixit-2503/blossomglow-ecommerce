@@ -1,7 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { X, ShieldCheck, CheckCircle2, Truck, CreditCard, QrCode, ArrowRight, Package, Lock, UserCheck, AlertCircle } from 'lucide-react';
+import {
+  X,
+  ShieldCheck,
+  CheckCircle2,
+  Truck,
+  CreditCard,
+  QrCode,
+  ArrowRight,
+  Package,
+  Lock,
+  UserCheck,
+  AlertCircle,
+  Building2,
+  Zap,
+  Printer,
+  FileText
+} from 'lucide-react';
 import { CartItem, CustomerOrderInfo, Order, UserProfile } from '../types';
 import { CandleApiService } from '../services/api';
+import { RazorpayTestModal } from './RazorpayTestModal';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -42,6 +59,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'Card' | 'NetBanking' | 'Cash on Delivery'>('UPI');
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
   const [orderError, setOrderError] = useState<string | null>(null);
+  const [isGatewayOpen, setIsGatewayOpen] = useState(false);
 
   // Synchronize form with authenticated customer when currentUser changes
   useEffect(() => {
@@ -109,24 +127,51 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
   };
 
-  const handlePlaceOrder = async () => {
+  // Open the Razorpay Sandbox / Payment Gateway simulator modal
+  const handleProceedToGateway = () => {
     setOrderError(null);
+    setIsGatewayOpen(true);
+  };
+
+  // Called when transaction is authorized & captured in the test gateway
+  const handleGatewaySuccess = async (details: {
+    gateway: string;
+    paymentId: string;
+    gatewayOrderId: string;
+    paymentStatus: 'Captured' | 'Authorized' | 'COD_Pending';
+    bankRefNumber: string;
+    paymentMethodDetails: string;
+    method: 'UPI' | 'Card' | 'NetBanking' | 'Cash on Delivery';
+  }) => {
+    setIsGatewayOpen(false);
     setStep('processing');
+    setOrderError(null);
     try {
       const order = await CandleApiService.createOrder({
         items,
         customerInfo: formData,
-        paymentMethod,
-        discountCode: couponCode
+        paymentMethod: details.method,
+        discountCode: couponCode,
+        paymentGatewayDetails: details,
       });
       setCreatedOrder(order);
       setStep('confirmed');
       onOrderSuccess(order);
     } catch (err: any) {
       console.error(err);
-      setOrderError(err.message || 'Failed to place order');
+      setOrderError(err.message || 'Failed to complete order');
       setStep('payment');
     }
+  };
+
+  const handleGatewayFailure = (errorMsg: string) => {
+    setIsGatewayOpen(false);
+    setOrderError(errorMsg);
+    setStep('payment');
+  };
+
+  const handlePrintReceipt = () => {
+    window.print();
   };
 
   return (
@@ -401,19 +446,25 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   {
                     id: 'UPI',
                     name: 'Instant UPI (Google Pay, PhonePe, Paytm, QR)',
-                    sub: 'Fastest & Zero transaction fee',
+                    sub: 'Fastest & Zero Fee • Simulated Mobile Scan & Push Request',
                     icon: QrCode
                   },
                   {
                     id: 'Card',
                     name: 'Credit / Debit Card (Visa, Mastercard, RuPay)',
-                    sub: 'All Indian & International cards accepted',
+                    sub: 'Indian & International Cards • Simulated 3D-Secure Bank OTP',
                     icon: CreditCard
+                  },
+                  {
+                    id: 'NetBanking',
+                    name: 'NetBanking (HDFC, ICICI, SBI, Axis, 50+ Banks)',
+                    sub: 'Direct retail internet banking authorization simulator',
+                    icon: Building2
                   },
                   {
                     id: 'Cash on Delivery',
                     name: 'Cash On Delivery (COD)',
-                    sub: 'Pay with cash or UPI at your doorstep',
+                    sub: 'Pay with cash or UPI at your doorstep • Phone SMS OTP verified',
                     icon: Truck
                   }
                 ].map((option) => (
@@ -422,7 +473,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     onClick={() => setPaymentMethod(option.id as any)}
                     className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
                       paymentMethod === option.id
-                        ? 'border-stone-900 bg-stone-50 shadow-xs'
+                        ? 'border-blue-700 bg-blue-50/50 shadow-xs ring-1 ring-blue-700/20'
                         : 'border-stone-200 hover:border-stone-300 bg-white'
                     }`}
                   >
@@ -431,7 +482,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       name="paymentMethod"
                       checked={paymentMethod === option.id}
                       onChange={() => setPaymentMethod(option.id as any)}
-                      className="mt-1 text-stone-900 focus:ring-stone-900"
+                      className="mt-1 text-blue-700 focus:ring-blue-700"
                     />
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
@@ -442,6 +493,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     </div>
                   </label>
                 ))}
+              </div>
+
+              {/* Payment Gateway Sandbox Notice */}
+              <div className="p-3 bg-amber-50/90 border border-amber-200 rounded-xl text-left flex items-start gap-2.5">
+                <Zap className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                <div className="text-xs text-amber-900">
+                  <span className="font-semibold block">Production-Ready Gateway Simulator</span>
+                  <span className="text-[11px] text-amber-800 leading-relaxed block mt-0.5">
+                    Clicking continue will open our test <strong>Razorpay Sandbox Checkout</strong>. You can test live UPI QR scanning, card autofill with 3D Secure OTP, NetBanking login, or doorstep COD phone verification without real money.
+                  </span>
+                </div>
               </div>
 
               {/* Order Summary Box */}
@@ -470,17 +532,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setStep('details')}
-                  className="px-4 py-3 border border-stone-200 rounded-xl text-xs font-medium text-stone-700 hover:bg-stone-50"
+                  className="px-4 py-3 border border-stone-200 rounded-xl text-xs font-medium text-stone-700 hover:bg-stone-50 cursor-pointer"
                 >
                   Back
                 </button>
                 <button
                   type="button"
-                  onClick={handlePlaceOrder}
-                  className="flex-1 bg-[#262220] hover:bg-black text-white py-3 px-4 rounded-xl text-xs font-semibold uppercase tracking-wider shadow-lg transition-all flex items-center justify-center gap-2"
+                  onClick={handleProceedToGateway}
+                  className="flex-1 bg-[#0c2340] hover:bg-[#13335c] text-white py-3 px-4 rounded-xl text-xs font-semibold uppercase tracking-wider shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <ShieldCheck className="w-4 h-4 text-amber-300" />
-                  <span>Confirm Order · ₹{totalAmount}</span>
+                  <Zap className="w-4 h-4 text-amber-300" />
+                  <span>Proceed to Pay (₹{totalAmount}) · Razorpay Sandbox</span>
+                  <ArrowRight className="w-4 h-4 text-blue-200" />
                 </button>
               </div>
             </div>
@@ -519,24 +582,42 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </p>
               </div>
 
-              {/* Order Metadata Tile */}
-              <div className="bg-[#FAF8F5] border border-stone-200 rounded-xl p-4 text-xs text-left grid grid-cols-2 gap-3">
+              {/* Order Metadata Tile with Gateway Information */}
+              <div className="bg-[#FAF8F5] border border-stone-200 rounded-xl p-4 sm:p-5 text-xs text-left grid grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <span className="text-stone-400 block text-[10px] uppercase">Order Reference</span>
+                  <span className="text-stone-400 block text-[10px] uppercase font-mono">Order Reference</span>
                   <span className="font-mono font-bold text-stone-900 text-sm">{createdOrder.orderNumber}</span>
                 </div>
                 <div>
-                  <span className="text-stone-400 block text-[10px] uppercase">Courier Tracking</span>
+                  <span className="text-stone-400 block text-[10px] uppercase font-mono">Courier Tracking</span>
                   <span className="font-mono font-semibold text-amber-900 text-xs">{createdOrder.trackingNumber}</span>
                 </div>
                 <div>
-                  <span className="text-stone-400 block text-[10px] uppercase">Estimated Arrival</span>
+                  <span className="text-stone-400 block text-[10px] uppercase font-mono">Estimated Arrival</span>
                   <span className="font-medium text-stone-800">{createdOrder.estimatedDeliveryDate}</span>
                 </div>
                 <div>
-                  <span className="text-stone-400 block text-[10px] uppercase">Payment Method</span>
+                  <span className="text-stone-400 block text-[10px] uppercase font-mono">Payment Method</span>
                   <span className="font-medium text-stone-800">{createdOrder.paymentMethod}</span>
                 </div>
+
+                {/* Gateway Metadata Row */}
+                <div className="col-span-2 pt-2.5 border-t border-stone-200 flex flex-wrap items-center justify-between gap-2 bg-blue-50/60 p-2.5 rounded-lg border border-blue-100">
+                  <div>
+                    <span className="text-[10px] font-mono text-blue-900 font-semibold uppercase block">
+                      Gateway Reference ({createdOrder.paymentGateway || 'Razorpay Test Sandbox'})
+                    </span>
+                    <span className="font-mono text-stone-700 text-[11px] block">
+                      ID: <strong className="text-stone-900">{createdOrder.paymentId || 'pay_demo_captured'}</strong> • RRN: {createdOrder.bankRefNumber || '32901849182'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      {createdOrder.paymentStatus || 'Captured'}
+                    </span>
+                  </div>
+                </div>
+
                 <div className="col-span-2 pt-2 border-t border-stone-200/80 flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-[11px] text-emerald-800 font-medium">
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
@@ -549,6 +630,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handlePrintReceipt}
+                  className="px-4 py-3 bg-white border border-stone-300 hover:bg-stone-50 text-stone-800 rounded-xl text-xs font-semibold uppercase tracking-wider shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Printer className="w-4 h-4 text-stone-600" />
+                  <span>Print Tax Invoice</span>
+                </button>
                 {onTrackOrder && (
                   <button
                     onClick={() => {
@@ -572,6 +661,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           )}
         </div>
       </div>
+
+      {/* RAZORPAY TEST MODE MODAL SIMULATOR */}
+      <RazorpayTestModal
+        isOpen={isGatewayOpen}
+        onClose={() => setIsGatewayOpen(false)}
+        orderAmount={totalAmount}
+        customerInfo={formData}
+        initialMethod={paymentMethod}
+        onPaymentSuccess={handleGatewaySuccess}
+        onPaymentFailure={handleGatewayFailure}
+      />
     </div>
   );
 };

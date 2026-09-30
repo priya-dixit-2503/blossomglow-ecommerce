@@ -17,6 +17,23 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- 1b. User Addresses Table
+CREATE TABLE IF NOT EXISTS user_addresses (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    title VARCHAR(50) DEFAULT 'Home',
+    recipient_name VARCHAR(150) NOT NULL,
+    phone VARCHAR(30) NOT NULL,
+    street_address TEXT NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    state VARCHAR(100) NOT NULL,
+    pincode VARCHAR(20) NOT NULL,
+    is_default BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_addresses_user (user_id)
+);
+
 -- 2. Categories Table
 CREATE TABLE IF NOT EXISTS categories (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -59,6 +76,21 @@ CREATE TABLE IF NOT EXISTS products (
     INDEX idx_products_category (category_name),
     INDEX idx_products_fragrance (fragrance_family),
     INDEX idx_products_price (price)
+);
+
+-- 3b. Product Images Table (Multi-angle artisan photography gallery)
+-- Normalizes product imagery: Product -> Product Images -> Gallery
+CREATE TABLE IF NOT EXISTS product_images (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    product_id BIGINT NOT NULL,
+    image_url VARCHAR(500) NOT NULL,
+    alt_text VARCHAR(255),
+    display_order INT NOT NULL DEFAULT 0,
+    is_primary BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    INDEX idx_product_images_product (product_id),
+    INDEX idx_product_images_order (display_order)
 );
 
 -- 4. Cart Table

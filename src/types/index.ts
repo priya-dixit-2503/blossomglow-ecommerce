@@ -36,6 +36,14 @@ export type ProductCategory =
   | 'Aromatherapy Jars'
   | 'Artisanal Decor';
 
+export interface ProductImageItem {
+  id?: number;
+  imageUrl: string;
+  altText?: string;
+  displayOrder?: number;
+  isPrimary?: boolean;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -48,6 +56,7 @@ export interface Product {
   reviewsCount: number;
   image: string;
   galleryImages: string[];
+  productImages?: ProductImageItem[];
   burnTimeHours: number;
   weightGrams: number;
   scentIntensity: number; // 1 to 5
@@ -116,6 +125,13 @@ export interface Order {
   trackingNumber: string;
   createdAt: string;
   estimatedDeliveryDate: string;
+  // Payment Gateway Simulator / Razorpay Integration Metadata
+  paymentGateway?: string;
+  paymentId?: string;
+  gatewayOrderId?: string;
+  paymentStatus?: 'Captured' | 'Authorized' | 'COD_Pending' | 'Failed';
+  bankRefNumber?: string;
+  paymentMethodDetails?: string;
 }
 
 export interface ContactMessage {

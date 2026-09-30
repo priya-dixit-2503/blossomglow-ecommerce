@@ -96,6 +96,40 @@ INSERT INTO products (
 )
 ON DUPLICATE KEY UPDATE name=name, image_url=VALUES(image_url);
 
+-- Seed Product Images (Product -> Product Images -> Gallery)
+INSERT INTO product_images (id, product_id, image_url, alt_text, display_order, is_primary)
+VALUES
+-- Product 1: Floral Garden
+(1, 1, '/products/floral-garden.jpg', 'Amber Rose Floral Garden Jar Candle - Main View', 1, TRUE),
+(2, 1, '/products/gilded-lotus-hamper.jpg', 'Artisan Sculpted Rose Detail', 2, FALSE),
+(3, 1, '/products/fluted-carousel-jar.jpg', 'Clear Glass Jar with Bamboo Lid', 3, FALSE),
+
+-- Product 2: Natural Spice
+(4, 2, '/products/natural-spice.jpg', 'Coastal Calm & Spice Scented Candle - Main View', 1, TRUE),
+(5, 2, '/products/wooden-dough-bowl.jpg', 'Reclaimed Coconut Shell & Star Anise Detail', 2, FALSE),
+
+-- Product 3: Buddha Serenity
+(6, 3, '/products/buddha-serenity.jpg', 'Meditating Buddha Dual Sculptures - Main View', 1, TRUE),
+(7, 3, '/products/lotus-glow.jpg', 'Zen Dhyana Meditation Detail', 2, FALSE),
+
+-- Product 4: Lotus Glow
+(8, 4, '/products/lotus-glow.jpg', 'Twin Lotus Flower Petals Burning with Wood Wicks - Main View', 1, TRUE),
+(9, 4, '/products/teddy-lotus-blossom.jpg', 'Sculpted White Lotus Bowl Detail', 2, FALSE),
+
+-- Product 5: Teddy Lotus Blossom / Minimal Ribbed
+(10, 5, '/products/teddy-lotus-blossom.jpg', 'Teddy Bear Lotus Blossom Candle Favors - Main View', 1, TRUE),
+(11, 5, '/products/baby-elephant.jpg', 'Miniature Teddy Celebration Favors', 2, FALSE),
+(12, 5, '/products/teddy-baby-shower.jpg', 'Boy or Girl Celebration Favors', 3, FALSE),
+
+-- Product 6: Evil Eye Gift Box
+(13, 6, '/products/evil-eye-gift-box.jpg', 'Sacred Evil Eye Protection Luxury Hamper - Main View', 1, TRUE),
+(14, 6, '/products/gilded-lotus-hamper.jpg', 'Turquoise Box with Beaded Brooch Detail', 2, FALSE),
+
+-- Product 7: Wooden Dough Bowl
+(15, 7, '/products/wooden-dough-bowl.jpg', 'Carved Wooden Dough Bowl 3-Wick Candle - Main View', 1, TRUE),
+(16, 7, '/products/natural-spice.jpg', 'Solid Wood Grain & Botanical Potpourri Detail', 2, FALSE)
+ON DUPLICATE KEY UPDATE image_url=VALUES(image_url), display_order=VALUES(display_order);
+
 -- Seed Initial Verified Reviews
 INSERT INTO reviews (id, product_id, author_name, location, rating, title, comment, verified)
 VALUES

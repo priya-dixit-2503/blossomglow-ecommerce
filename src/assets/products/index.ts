@@ -21,6 +21,9 @@ import flutedMarbledTrayDuo from './fluted-marbled-tray-duo.jpg';
 import hollowArchBudVase from './hollow-arch-bud-vase.jpg';
 import flutedCarouselJar from './fluted-carousel-jar.jpg';
 import wavyRippleTray from './wavy-ripple-tray.jpg';
+import abstractThinkers from './abstract-thinkers.jpg';
+import teddyLotusBlossom from './teddy-lotus-blossom.jpg';
+import oceanicSeashell from './oceanic-seashell.jpg';
 
 export const PRODUCT_ASSETS = {
   // Five Flagship Requested Candles
@@ -44,4 +47,7 @@ export const PRODUCT_ASSETS = {
   hollowArchBudVase,
   flutedCarouselJar,
   wavyRippleTray,
+  abstractThinkers,
+  teddyLotusBlossom,
+  oceanicSeashell,
 };

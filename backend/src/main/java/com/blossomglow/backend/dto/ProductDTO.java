@@ -53,6 +53,9 @@ public class ProductDTO {
 
     private List<String> galleryImages;
 
+    @JsonProperty("product_images")
+    private List<ProductImageDTO> productImages;
+
     private Integer burnTimeHours;
     private Integer weightGrams;
     private Integer scentIntensity;

@@ -78,6 +78,7 @@ public class SecurityConfig {
                 // Authenticated customer endpoints
                 .requestMatchers(
                     "/api/auth/me",
+                    "/api/user/**",
                     "/api/orders/my-orders",
                     "/api/wishlist/**"
                 ).authenticated()

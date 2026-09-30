@@ -74,6 +74,20 @@ const COLLECTIONS: CollectionItem[] = [
     count: 'Nazar Protection',
     categoryFilter: 'Luxury Gift Hampers',
   },
+  {
+    id: 'oceanic-shells',
+    name: 'Oceanic Shells',
+    image: PRODUCT_ASSETS.oceanicSeashell,
+    count: 'Real Conch Wax',
+    categoryFilter: 'Sculptural Candles',
+  },
+  {
+    id: 'thinker-statues',
+    name: 'Thinker Sculptures',
+    image: PRODUCT_ASSETS.abstractThinkers,
+    count: 'Jesmonite Trio',
+    categoryFilter: 'Diffusers & Home Accents',
+  },
 ];
 
 interface AuraCollectionCirclesProps {

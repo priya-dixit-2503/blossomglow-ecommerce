@@ -5,7 +5,7 @@ import { normalizeProduct } from '../utils/productNormalizer';
 
 const ORDERS_STORAGE_KEY = 'auradecor_orders_v3';
 const WISHLIST_STORAGE_KEY = 'auradecor_wishlist_v3';
-const PRODUCTS_STORAGE_KEY = 'auradecor_products_v3';
+const PRODUCTS_STORAGE_KEY = 'blossomglow_artisan_catalog_v2026_18photos';
 const CONTACT_STORAGE_KEY = 'auradecor_contact_messages_v3';
 const REVIEWS_STORAGE_KEY = 'auradecor_reviews_v3';
 const CART_STORAGE_KEY = 'auradecor_cart_v3';
@@ -214,11 +214,29 @@ export class CandleApiService {
 
   static getStoredProducts(): Product[] {
     try {
+      // Purge legacy storage keys that held outdated image references
+      localStorage.removeItem('auradecor_products_v1');
+      localStorage.removeItem('auradecor_products_v2');
+      localStorage.removeItem('auradecor_products_v3');
+
       const stored = localStorage.getItem(PRODUCTS_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed) && parsed.length >= MOCK_PRODUCTS.length) {
           const sanitized = parsed.map(normalizeProduct);
+          // Ensure all default MOCK_PRODUCTS exist in the active catalog
+          for (const mock of MOCK_PRODUCTS) {
+            const cleanMockId = mock.id.toLowerCase().replace(/^bg-/, '');
+            const exists = sanitized.some(
+              (p) =>
+                p.id.toLowerCase() === mock.id.toLowerCase() ||
+                p.id.toLowerCase().replace(/^bg-/, '') === cleanMockId ||
+                p.name.toLowerCase().trim() === mock.name.toLowerCase().trim()
+            );
+            if (!exists) {
+              sanitized.push(normalizeProduct(mock));
+            }
+          }
           this.saveStoredProducts(sanitized);
           return sanitized;
         }
@@ -355,24 +373,45 @@ export class CandleApiService {
    */
   static checkStock(
     productId: string,
-    requestedQuantity: number
+    requestedQuantity: number,
+    fallbackProduct?: Product
   ): { available: boolean; currentStock: number; message?: string } {
     const catalog = this.getStoredProducts();
-    const product = catalog.find(
-      (p) => String(p.id).trim().toLowerCase() === String(productId).trim().toLowerCase()
-    );
+    const queryId = String(productId || '').trim().toLowerCase();
+    const cleanId = queryId.replace(/^bg-/, '');
+
+    let product = catalog.find((p) => {
+      const pId = String(p.id).trim().toLowerCase();
+      const pClean = pId.replace(/^bg-/, '');
+      return pId === queryId || pClean === cleanId;
+    });
+
     if (!product) {
-      return { available: false, currentStock: 0, message: 'Product not found in catalog.' };
+      product = MOCK_PRODUCTS.find((m) => {
+        const mId = String(m.id).trim().toLowerCase();
+        const mClean = mId.replace(/^bg-/, '');
+        return mId === queryId || mClean === cleanId || (fallbackProduct && m.name.toLowerCase().trim() === fallbackProduct.name.toLowerCase().trim());
+      });
     }
+
+    if (!product && fallbackProduct) {
+      product = fallbackProduct;
+    }
+
+    if (!product) {
+      // Graceful default: allow reasonable quantity with catalog default stock
+      return { available: true, currentStock: 30 };
+    }
+
     const currentStock = typeof product.stockQuantity === 'number' ? product.stockQuantity : (product.inStock ? 50 : 0);
     if (!product.inStock || currentStock <= 0) {
-      return { available: false, currentStock: 0, message: `"${product.name}" is out of stock.` };
+      return { available: false, currentStock: 0, message: `"${product.name}" is currently out of stock.` };
     }
     if (requestedQuantity > currentStock) {
       return {
         available: false,
         currentStock,
-        message: `Requested quantity (${requestedQuantity}) exceeds available stock (${currentStock}) for "${product.name}".`,
+        message: `Only ${currentStock} units available for "${product.name}". Please reduce quantity.`,
       };
     }
     return { available: true, currentStock };
@@ -498,6 +537,14 @@ export class CandleApiService {
     discount?: number;
     shippingFee?: number;
     totalAmount?: number;
+    paymentGatewayDetails?: {
+      gateway: string;
+      paymentId: string;
+      gatewayOrderId?: string;
+      paymentStatus: 'Captured' | 'Authorized' | 'COD_Pending' | 'Failed';
+      bankRefNumber?: string;
+      paymentMethodDetails?: string;
+    };
   }): Promise<Order> {
     // 1. SECURITY & AUTHENTICATION ENFORCEMENT (ROLE_CUSTOMER or ROLE_ADMIN)
     const currentUser = this.getCurrentUser();
@@ -517,10 +564,20 @@ export class CandleApiService {
     let authoritativeSubtotal = 0;
 
     for (const rawItem of orderData.items) {
-      const trimmedId = String(rawItem.productId).trim();
+      const trimmedId = String(rawItem.productId || '').trim().toLowerCase();
+      const cleanId = trimmedId.replace(/^bg-/, '');
       const product =
-        catalog.find((p) => String(p.id).trim().toLowerCase() === trimmedId.toLowerCase()) ||
-        MOCK_PRODUCTS.find((p) => String(p.id).trim().toLowerCase() === trimmedId.toLowerCase());
+        catalog.find((p) => {
+          const pId = String(p.id).trim().toLowerCase();
+          const pClean = pId.replace(/^bg-/, '');
+          return pId === trimmedId || pClean === cleanId;
+        }) ||
+        MOCK_PRODUCTS.find((m) => {
+          const mId = String(m.id).trim().toLowerCase();
+          const mClean = mId.replace(/^bg-/, '');
+          return mId === trimmedId || mClean === cleanId;
+        }) ||
+        (rawItem.product ? normalizeProduct(rawItem.product) : null);
 
       if (!product) {
         throw new Error(`404 Not Found: Product with ID "${rawItem.productId}" not found in authoritative catalog.`);
@@ -672,6 +729,12 @@ export class CandleApiService {
           fullName: orderData.customerInfo.fullName || currentUser.fullName,
         },
         paymentMethod: orderData.paymentMethod,
+        paymentGateway: orderData.paymentGatewayDetails?.gateway || (orderData.paymentMethod === 'Cash on Delivery' ? 'Cash on Delivery (OTP Verified)' : 'Razorpay (Test Sandbox)'),
+        paymentId: orderData.paymentGatewayDetails?.paymentId || (orderData.paymentMethod === 'Cash on Delivery' ? `cod_${Date.now()}` : `pay_${Math.random().toString(36).substring(2, 11)}`),
+        gatewayOrderId: orderData.paymentGatewayDetails?.gatewayOrderId || `order_${Math.random().toString(36).substring(2, 11)}`,
+        paymentStatus: orderData.paymentGatewayDetails?.paymentStatus || (orderData.paymentMethod === 'Cash on Delivery' ? 'COD_Pending' : 'Captured'),
+        bankRefNumber: orderData.paymentGatewayDetails?.bankRefNumber || `RRN${Math.floor(100000000000 + Math.random() * 900000000000)}`,
+        paymentMethodDetails: orderData.paymentGatewayDetails?.paymentMethodDetails || orderData.paymentMethod,
         status: 'Confirmed',
         trackingNumber,
         createdAt: new Date().toISOString(),
@@ -696,12 +759,21 @@ export class CandleApiService {
     customerInfo: CustomerOrderInfo;
     paymentMethod: 'UPI' | 'Card' | 'NetBanking' | 'Cash on Delivery';
     discountCode?: string;
+    paymentGatewayDetails?: {
+      gateway: string;
+      paymentId: string;
+      gatewayOrderId?: string;
+      paymentStatus: 'Captured' | 'Authorized' | 'COD_Pending' | 'Failed';
+      bankRefNumber?: string;
+      paymentMethodDetails?: string;
+    };
   }): Promise<Order> {
     return this.placeOrder({
       items: orderData.items,
       customerInfo: orderData.customerInfo,
       paymentMethod: orderData.paymentMethod,
       couponCode: orderData.discountCode,
+      paymentGatewayDetails: orderData.paymentGatewayDetails,
     });
   }
 
@@ -1328,5 +1400,356 @@ export class CandleApiService {
     });
 
     return matched || products.find((p) => p.isBestSeller) || products[0];
+  }
+
+  // =========================================================================
+  // CATEGORY MANAGEMENT (Spring Boot /api/categories & /api/admin/categories)
+  // =========================================================================
+
+  static getStoredCategories(): {
+    id: number;
+    name: string;
+    slug: string;
+    description?: string;
+    imageUrl?: string;
+    displayOrder?: number;
+    productsCount?: number;
+  }[] {
+    try {
+      const saved = localStorage.getItem('blossomglow_categories_cache');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {
+      // ignore
+    }
+    return [
+      { id: 1, name: 'Gift Candles', slug: 'gift-candles', description: 'Elegantly packaged artisanal candles ready for gifting and celebrations', imageUrl: '/products/floral-garden.jpg', displayOrder: 1 },
+      { id: 2, name: 'Scented Candles', slug: 'scented-candles', description: 'Aromatherapy candles infused with pure therapeutic essential oils', imageUrl: '/products/natural-spice.jpg', displayOrder: 2 },
+      { id: 3, name: 'Meditation Candles', slug: 'meditation-candles', description: 'Sacred and calming silhouettes crafted for zen sanctuaries', imageUrl: '/products/buddha-serenity.jpg', displayOrder: 3 },
+      { id: 4, name: 'Decorative Candles', slug: 'decorative-candles', description: 'Sculptural botanical candles that elevate your table', imageUrl: '/products/lotus-glow.jpg', displayOrder: 4 },
+      { id: 5, name: 'Home Décor Candles', slug: 'home-decor-candles', description: 'Architectural silhouettes and textured vessels', imageUrl: '/products/minimal-ribbed.jpg', displayOrder: 5 },
+      { id: 6, name: 'Gift Hampers', slug: 'gift-hampers', description: 'Curated luxury gift chest hampers with custom handwritten cards', imageUrl: '/products/evil-eye-gift-box.jpg', displayOrder: 6 },
+    ];
+  }
+
+  static async getCategories(): Promise<any[]> {
+    try {
+      const response = await axiosClient.get('/categories');
+      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+        localStorage.setItem('blossomglow_categories_cache', JSON.stringify(response.data));
+        return response.data;
+      }
+    } catch {
+      // fallback
+    }
+    return this.getStoredCategories();
+  }
+
+  static async createCategory(categoryData: {
+    name: string;
+    slug?: string;
+    description?: string;
+    imageUrl?: string;
+    displayOrder?: number;
+  }): Promise<any> {
+    const activeUser = this.getCurrentUser();
+    if (!activeUser || activeUser.role !== 'ROLE_ADMIN') {
+      throw new Error('403 Forbidden: Spring Security requires ROLE_ADMIN to create categories.');
+    }
+
+    try {
+      const response = await axiosClient.post('/admin/categories', {
+        name: categoryData.name,
+        slug: categoryData.slug,
+        description: categoryData.description,
+        image_url: categoryData.imageUrl,
+        display_order: categoryData.displayOrder,
+      });
+      if (response.data) {
+        const current = this.getStoredCategories();
+        current.push(response.data);
+        localStorage.setItem('blossomglow_categories_cache', JSON.stringify(current));
+        return response.data;
+      }
+    } catch {
+      // fallback local
+    }
+
+    const current = this.getStoredCategories();
+    const newCategory = {
+      id: Date.now(),
+      name: categoryData.name,
+      slug: categoryData.slug || categoryData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      description: categoryData.description,
+      imageUrl: categoryData.imageUrl || '/products/floral-garden.jpg',
+      displayOrder: categoryData.displayOrder || current.length + 1,
+    };
+    current.push(newCategory);
+    localStorage.setItem('blossomglow_categories_cache', JSON.stringify(current));
+    return newCategory;
+  }
+
+  static async updateCategory(id: number | string, categoryData: {
+    name: string;
+    slug?: string;
+    description?: string;
+    imageUrl?: string;
+    displayOrder?: number;
+  }): Promise<any> {
+    const activeUser = this.getCurrentUser();
+    if (!activeUser || activeUser.role !== 'ROLE_ADMIN') {
+      throw new Error('403 Forbidden: Spring Security requires ROLE_ADMIN to update categories.');
+    }
+
+    try {
+      const response = await axiosClient.put(`/admin/categories/${id}`, {
+        name: categoryData.name,
+        slug: categoryData.slug,
+        description: categoryData.description,
+        image_url: categoryData.imageUrl,
+        display_order: categoryData.displayOrder,
+      });
+      if (response.data) {
+        const current = this.getStoredCategories();
+        const idx = current.findIndex(c => String(c.id) === String(id));
+        if (idx !== -1) {
+          current[idx] = response.data;
+          localStorage.setItem('blossomglow_categories_cache', JSON.stringify(current));
+        }
+        return response.data;
+      }
+    } catch {
+      // fallback local
+    }
+
+    const current = this.getStoredCategories();
+    const idx = current.findIndex(c => String(c.id) === String(id));
+    if (idx !== -1) {
+      current[idx] = { ...current[idx], ...categoryData };
+      localStorage.setItem('blossomglow_categories_cache', JSON.stringify(current));
+      return current[idx];
+    }
+    return categoryData;
+  }
+
+  static async deleteCategory(id: number | string): Promise<void> {
+    const activeUser = this.getCurrentUser();
+    if (!activeUser || activeUser.role !== 'ROLE_ADMIN') {
+      throw new Error('403 Forbidden: Spring Security requires ROLE_ADMIN to delete categories.');
+    }
+
+    try {
+      await axiosClient.delete(`/admin/categories/${id}`);
+    } catch {
+      // fallback
+    }
+
+    const current = this.getStoredCategories();
+    const filtered = current.filter(c => String(c.id) !== String(id));
+    localStorage.setItem('blossomglow_categories_cache', JSON.stringify(filtered));
+  }
+
+  // =========================================================================
+  // CUSTOMER ACCOUNT MANAGEMENT (Spring Boot /api/user/*)
+  // Backend-Authoritative: Profile, Orders, Addresses, Security
+  // =========================================================================
+
+  static async getUserProfile(): Promise<any> {
+    const token = this.getAuthToken();
+    if (!token) {
+      return this.getCurrentUser();
+    }
+
+    try {
+      // First try /api/user/profile
+      const response = await axiosClient.get('/user/profile');
+      if (response.data) {
+        const u = response.data;
+        const profileObj = {
+          id: u.id,
+          username: u.username,
+          email: u.email,
+          fullName: u.full_name || u.fullName,
+          phone: u.phone || '',
+          role: u.role || 'ROLE_CUSTOMER',
+          memberSince: u.member_since || u.memberSince,
+        };
+        // Refresh local cache with authoritative backend data
+        localStorage.setItem('blossomglow_auth_user', JSON.stringify(profileObj));
+        return profileObj;
+      }
+    } catch {
+      // Try /api/auth/me fallback
+      try {
+        const meRes = await axiosClient.get('/auth/me');
+        if (meRes.data) {
+          const u = meRes.data;
+          const profileObj = {
+            id: u.id,
+            username: u.username,
+            email: u.email,
+            fullName: u.fullName || u.full_name,
+            phone: u.phone || '',
+            role: u.role || 'ROLE_CUSTOMER',
+          };
+          localStorage.setItem('blossomglow_auth_user', JSON.stringify(profileObj));
+          return profileObj;
+        }
+      } catch {
+        // use local storage
+      }
+    }
+
+    return this.getCurrentUser();
+  }
+
+  static async updateUserProfile(data: { fullName: string; phone?: string }): Promise<any> {
+    try {
+      const response = await axiosClient.put('/user/profile', {
+        full_name: data.fullName,
+        phone: data.phone,
+      });
+      if (response.data) {
+        const u = response.data;
+        const updated = {
+          ...this.getCurrentUser(),
+          fullName: u.full_name || u.fullName,
+          phone: u.phone || '',
+        };
+        localStorage.setItem('blossomglow_auth_user', JSON.stringify(updated));
+        return updated;
+      }
+    } catch {
+      // fallback local update
+    }
+
+    const current = this.getCurrentUser();
+    if (current) {
+      const updated = { ...current, fullName: data.fullName, phone: data.phone || current.phone };
+      localStorage.setItem('blossomglow_auth_user', JSON.stringify(updated));
+      return updated;
+    }
+    return null;
+  }
+
+  static async changeUserPassword(currentPassword: string, newPassword: string): Promise<any> {
+    const response = await axiosClient.post('/user/change-password', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
+    return response.data;
+  }
+
+  static async getCustomerOrders(): Promise<any[]> {
+    try {
+      const response = await axiosClient.get('/user/orders');
+      if (response.data && Array.isArray(response.data)) {
+        return response.data;
+      }
+    } catch {
+      // fallback: filter local orders by customer email
+    }
+
+    const currentUser = this.getCurrentUser();
+    if (!currentUser) return [];
+
+    const allOrders = this.getStoredOrders();
+    return allOrders.filter(
+      (o: any) => o.email && o.email.toLowerCase() === currentUser.email.toLowerCase()
+    );
+  }
+
+  static async getUserAddresses(): Promise<any[]> {
+    try {
+      const response = await axiosClient.get('/user/addresses');
+      if (response.data && Array.isArray(response.data)) {
+        localStorage.setItem('blossomglow_user_addresses', JSON.stringify(response.data));
+        return response.data;
+      }
+    } catch {
+      // fallback
+    }
+
+    try {
+      const cached = localStorage.getItem('blossomglow_user_addresses');
+      if (cached) return JSON.parse(cached);
+    } catch {
+      // ignore
+    }
+
+    const user = this.getCurrentUser();
+    return [
+      {
+        id: 1,
+        title: 'Home Altar & Residence',
+        recipientName: user?.fullName || 'Priya Sharma',
+        phone: user?.phone || '+91 98290 12345',
+        streetAddress: 'Apartment 402, Lotus Heritage Heights, Bandra West',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        pincode: '400050',
+        isDefault: true,
+      },
+    ];
+  }
+
+  static async addUserAddress(address: {
+    title: string;
+    recipientName: string;
+    phone: string;
+    streetAddress: string;
+    city: string;
+    state: string;
+    pincode: string;
+    isDefault?: boolean;
+  }): Promise<any> {
+    try {
+      const response = await axiosClient.post('/user/addresses', {
+        title: address.title,
+        recipient_name: address.recipientName,
+        phone: address.phone,
+        street_address: address.streetAddress,
+        city: address.city,
+        state: address.state,
+        pincode: address.pincode,
+        is_default: address.isDefault ?? false,
+      });
+      if (response.data) {
+        const current = await this.getUserAddresses();
+        const updated = [response.data, ...current];
+        localStorage.setItem('blossomglow_user_addresses', JSON.stringify(updated));
+        return response.data;
+      }
+    } catch {
+      // fallback
+    }
+
+    const current = await this.getUserAddresses();
+    const newAddress = {
+      id: Date.now(),
+      ...address,
+      isDefault: address.isDefault ?? current.length === 0,
+    };
+    const updated = [newAddress, ...current];
+    localStorage.setItem('blossomglow_user_addresses', JSON.stringify(updated));
+    return newAddress;
+  }
+
+  static async deleteUserAddress(id: number | string): Promise<void> {
+    try {
+      await axiosClient.delete(`/user/addresses/${id}`);
+    } catch {
+      // fallback
+    }
+
+    try {
+      const current = await this.getUserAddresses();
+      const updated = current.filter((a: any) => String(a.id) !== String(id));
+      localStorage.setItem('blossomglow_user_addresses', JSON.stringify(updated));
+    } catch {
+      // ignore
+    }
   }
 }

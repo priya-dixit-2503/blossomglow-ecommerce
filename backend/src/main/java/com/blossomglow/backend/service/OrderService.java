@@ -121,6 +121,14 @@ public class OrderService {
         return toDTO(updated);
     }
 
+    @Transactional(readOnly = true)
+    public List<OrderDTO> getOrdersByEmail(String email) {
+        if (email == null || email.isBlank()) return List.of();
+        return orderRepository.findByEmailOrderByCreatedAtDesc(email).stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
     public OrderDTO toDTO(Order o) {
         return OrderDTO.builder()
                 .id(o.getId())

@@ -51,6 +51,7 @@ interface NavbarProps {
   onOpenGiftBuilder?: () => void;
   onOpenAuth?: (mode?: 'login' | 'register' | 'admin') => void;
   onOpenOrderHistory?: () => void;
+  onOpenAccount?: (tab?: 'profile' | 'orders' | 'wishlist' | 'addresses' | 'security') => void;
   onLogout?: () => void;
   onNavigateToHome: () => void;
   onNavigateToNewArrivals?: () => void;
@@ -77,6 +78,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenGiftBuilder,
   onOpenAuth,
   onOpenOrderHistory,
+  onOpenAccount,
   onLogout,
   onNavigateToHome,
   onNavigateToNewArrivals,
@@ -541,16 +543,59 @@ export const Navbar: React.FC<NavbarProps> = ({
                       </div>
 
                       <div className="py-1">
+                        {onOpenAccount && (
+                          <button
+                            onClick={() => {
+                              setUserDropdownOpen(false);
+                              onOpenAccount('profile');
+                            }}
+                            className="w-full text-left px-4 py-2 text-xs font-semibold text-stone-900 hover:bg-stone-200/60 flex items-center gap-2 cursor-pointer transition-colors"
+                          >
+                            <User className="w-4 h-4 text-amber-700" />
+                            <span>My Account & Profile</span>
+                          </button>
+                        )}
+
                         {onOpenOrderHistory && (
                           <button
                             onClick={() => {
                               setUserDropdownOpen(false);
-                              onOpenOrderHistory();
+                              if (onOpenAccount) {
+                                onOpenAccount('orders');
+                              } else {
+                                onOpenOrderHistory();
+                              }
                             }}
                             className="w-full text-left px-4 py-2 text-xs text-stone-700 hover:bg-stone-200/60 flex items-center gap-2 cursor-pointer transition-colors"
                           >
                             <Package className="w-4 h-4 text-amber-800" />
-                            <span>My Order History</span>
+                            <span>Orders & History</span>
+                          </button>
+                        )}
+
+                        {onOpenAccount && (
+                          <button
+                            onClick={() => {
+                              setUserDropdownOpen(false);
+                              onOpenAccount('addresses');
+                            }}
+                            className="w-full text-left px-4 py-2 text-xs text-stone-700 hover:bg-stone-200/60 flex items-center gap-2 cursor-pointer transition-colors"
+                          >
+                            <MapPin className="w-4 h-4 text-stone-600" />
+                            <span>Saved Addresses</span>
+                          </button>
+                        )}
+
+                        {onOpenAccount && (
+                          <button
+                            onClick={() => {
+                              setUserDropdownOpen(false);
+                              onOpenAccount('security');
+                            }}
+                            className="w-full text-left px-4 py-2 text-xs text-stone-700 hover:bg-stone-200/60 flex items-center gap-2 cursor-pointer transition-colors"
+                          >
+                            <Lock className="w-4 h-4 text-stone-600" />
+                            <span>Change Password</span>
                           </button>
                         )}
 
