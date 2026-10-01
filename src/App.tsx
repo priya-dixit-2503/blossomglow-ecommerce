@@ -26,6 +26,7 @@ import { CandleCareGuideModal } from './components/CandleCareGuideModal';
 import { SpringBootArchitectureModal } from './components/SpringBootArchitectureModal';
 import { OrderTrackerModal } from './components/OrderTrackerModal';
 import { OrderHistoryModal } from './components/OrderHistoryModal';
+import { MyAccountModal } from './components/MyAccountModal';
 import { AuthModal } from './components/AuthModal';
 import { WishlistDrawer } from './components/WishlistDrawer';
 import { SearchModal } from './components/SearchModal';
@@ -52,6 +53,8 @@ export default function App() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authInitialMode, setAuthInitialMode] = useState<'login' | 'register' | 'admin'>('login');
   const [isOrderHistoryOpen, setIsOrderHistoryOpen] = useState(false);
+  const [isAccountOpen, setIsAccountOpen] = useState(false);
+  const [accountInitialTab, setAccountInitialTab] = useState<'profile' | 'orders' | 'wishlist' | 'addresses' | 'security'>('profile');
 
   // Selected Category filter
   const [selectedCategory, setSelectedCategory] = useState<string>('All Creations');
@@ -389,6 +392,15 @@ export default function App() {
     setCurrentUser(null);
   };
 
+  const handleOpenAccount = (tab: 'profile' | 'orders' | 'wishlist' | 'addresses' | 'security' = 'profile') => {
+    if (!currentUser) {
+      handleOpenAuth('login');
+      return;
+    }
+    setAccountInitialTab(tab);
+    setIsAccountOpen(true);
+  };
+
   const handleOpenAdmin = () => {
     // If not admin, open auth modal with admin tab
     if (!currentUser || currentUser.role !== 'ROLE_ADMIN') {
@@ -475,7 +487,8 @@ export default function App() {
         onOpenCareGuide={() => setIsCareGuideOpen(true)}
         onOpenCustomBlender={() => setIsCustomBlenderOpen(true)}
         onOpenAuth={handleOpenAuth}
-        onOpenOrderHistory={() => setIsOrderHistoryOpen(true)}
+        onOpenOrderHistory={() => handleOpenAccount('orders')}
+        onOpenAccount={handleOpenAccount}
         onLogout={handleLogout}
         onNavigateToHome={handleScrollToHome}
         onNavigateToNewArrivals={handleScrollToNewArrivals}
@@ -683,6 +696,18 @@ export default function App() {
           setIsAuthOpen(true);
         }}
         onTrackOrder={handleTrackOrder}
+      />
+
+      <MyAccountModal
+        isOpen={isAccountOpen}
+        onClose={() => setIsAccountOpen(false)}
+        currentUser={currentUser}
+        initialTab={accountInitialTab}
+        wishlistItems={products.filter((p) => wishlistIds.includes(p.id))}
+        onAddToCart={handleQuickAdd}
+        onRemoveFromWishlist={handleRemoveFromWishlist}
+        onTrackOrder={handleTrackOrder}
+        onLogout={handleLogout}
       />
 
       <AuthModal

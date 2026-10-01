@@ -14,7 +14,8 @@ import {
   Building2,
   Zap,
   Printer,
-  FileText
+  FileText,
+  Sparkles
 } from 'lucide-react';
 import { CartItem, CustomerOrderInfo, Order, UserProfile } from '../types';
 import { CandleApiService } from '../services/api';
@@ -62,6 +63,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [isGatewayOpen, setIsGatewayOpen] = useState(false);
 
   // Synchronize form with authenticated customer when currentUser changes
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+
   useEffect(() => {
     if (currentUser) {
       setFormData((prev) => ({
@@ -70,6 +73,24 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         email: currentUser.email,
         phone: prev.phone || currentUser.phone || '',
       }));
+
+      CandleApiService.getUserAddresses().then((addrs) => {
+        if (addrs && addrs.length > 0) {
+          setSavedAddresses(addrs);
+          const def = addrs.find((a: any) => a.isDefault || a.is_default) || addrs[0];
+          if (def) {
+            setFormData((prev) => ({
+              ...prev,
+              fullName: prev.fullName || def.recipientName || def.recipient_name || '',
+              phone: prev.phone || def.phone || '',
+              address: prev.address || def.streetAddress || def.street_address || '',
+              city: prev.city || def.city || '',
+              state: prev.state || def.state || 'Maharashtra',
+              pincode: prev.pincode || def.pincode || '',
+            }));
+          }
+        }
+      });
     }
   }, [currentUser]);
 
@@ -340,6 +361,44 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 />
                 {formErrors.email && <p className="text-[10px] text-rose-600 mt-0.5">{formErrors.email}</p>}
               </div>
+
+              {savedAddresses.length > 0 && (
+                <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-2.5">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-semibold text-amber-900 flex items-center gap-1.5">
+                      <Sparkles className="w-3 h-3 text-amber-600" />
+                      Saved Delivery Addresses
+                    </span>
+                    <span className="text-[10px] text-amber-700 font-mono">1-Click Select</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {savedAddresses.map((addr) => (
+                      <button
+                        key={addr.id}
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            fullName: addr.recipientName || addr.recipient_name || prev.fullName,
+                            phone: addr.phone || prev.phone,
+                            address: addr.streetAddress || addr.street_address || prev.address,
+                            city: addr.city || prev.city,
+                            state: addr.state || prev.state,
+                            pincode: addr.pincode || prev.pincode,
+                          }));
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all cursor-pointer ${
+                          formData.address === (addr.streetAddress || addr.street_address)
+                            ? 'bg-amber-800 text-amber-50 border-amber-800 shadow-xs'
+                            : 'bg-white text-stone-700 border-stone-200 hover:border-amber-400'
+                        }`}
+                      >
+                        {addr.title || 'Address'}: {addr.city} ({addr.pincode})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="text-xs font-semibold text-stone-700 block mb-1">

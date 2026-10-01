@@ -1557,7 +1557,7 @@ export class CandleApiService {
   // =========================================================================
 
   static async getUserProfile(): Promise<any> {
-    const token = this.getAuthToken();
+    const token = this.getStoredToken();
     if (!token) {
       return this.getCurrentUser();
     }
@@ -1568,7 +1568,7 @@ export class CandleApiService {
       if (response.data) {
         const u = response.data;
         const profileObj = {
-          id: u.id,
+          id: String(u.id),
           username: u.username,
           email: u.email,
           fullName: u.full_name || u.fullName,
@@ -1577,7 +1577,7 @@ export class CandleApiService {
           memberSince: u.member_since || u.memberSince,
         };
         // Refresh local cache with authoritative backend data
-        localStorage.setItem('blossomglow_auth_user', JSON.stringify(profileObj));
+        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(profileObj));
         return profileObj;
       }
     } catch {
@@ -1587,14 +1587,14 @@ export class CandleApiService {
         if (meRes.data) {
           const u = meRes.data;
           const profileObj = {
-            id: u.id,
+            id: String(u.id),
             username: u.username,
             email: u.email,
             fullName: u.fullName || u.full_name,
             phone: u.phone || '',
             role: u.role || 'ROLE_CUSTOMER',
           };
-          localStorage.setItem('blossomglow_auth_user', JSON.stringify(profileObj));
+          localStorage.setItem(AUTH_USER_KEY, JSON.stringify(profileObj));
           return profileObj;
         }
       } catch {
@@ -1618,7 +1618,7 @@ export class CandleApiService {
           fullName: u.full_name || u.fullName,
           phone: u.phone || '',
         };
-        localStorage.setItem('blossomglow_auth_user', JSON.stringify(updated));
+        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(updated));
         return updated;
       }
     } catch {
@@ -1628,7 +1628,7 @@ export class CandleApiService {
     const current = this.getCurrentUser();
     if (current) {
       const updated = { ...current, fullName: data.fullName, phone: data.phone || current.phone };
-      localStorage.setItem('blossomglow_auth_user', JSON.stringify(updated));
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(updated));
       return updated;
     }
     return null;

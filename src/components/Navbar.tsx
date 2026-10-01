@@ -9,6 +9,8 @@ import {
   ShieldCheck,
   Package,
   User,
+  MapPin,
+  Lock,
   LogOut,
   ChevronDown,
   ChevronLeft,
