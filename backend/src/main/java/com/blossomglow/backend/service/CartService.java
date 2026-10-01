@@ -40,13 +40,39 @@ public class CartService {
 
     @Transactional
     public CartDTO addItemToCart(String sessionToken, Long productId, int quantity, String vessel, String wick, String size) {
-        Cart cart = getOrCreateCart(sessionToken);
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + productId));
+        return addItemToCart(sessionToken, (Object) productId, quantity, vessel, wick, size);
+    }
 
+    @Transactional
+    public CartDTO addItemToCart(String sessionToken, Object productIdObj, int quantity, String vessel, String wick, String size) {
+        Cart cart = getOrCreateCart(sessionToken);
+        Product product = null;
+
+        if (productIdObj instanceof Number) {
+            product = productRepository.findById(((Number) productIdObj).longValue()).orElse(null);
+        } else if (productIdObj != null) {
+            String str = productIdObj.toString().trim();
+            try {
+                Long id = Long.parseLong(str);
+                product = productRepository.findById(id).orElse(null);
+            } catch (NumberFormatException ignored) {}
+
+            if (product == null) {
+                product = productRepository.findBySlug(str).orElse(null);
+                if (product == null && !str.startsWith("bg-")) {
+                    product = productRepository.findBySlug("bg-" + str).orElse(null);
+                }
+            }
+        }
+
+        if (product == null) {
+            throw new ResourceNotFoundException("Product not found: " + productIdObj);
+        }
+
+        final Long resolvedProductId = product.getId();
         // Check if item already exists in cart with same variant
         CartItem existing = cart.getItems().stream()
-                .filter(i -> i.getProduct().getId().equals(productId) &&
+                .filter(i -> i.getProduct().getId().equals(resolvedProductId) &&
                              safeEquals(i.getSelectedVessel(), vessel) &&
                              safeEquals(i.getSelectedWick(), wick) &&
                              safeEquals(i.getSelectedSize(), size))
@@ -74,7 +100,35 @@ public class CartService {
 
     @Transactional
     public CartDTO updateCartItem(Long itemId, int quantity) {
+        return updateCartItem(null, itemId, quantity);
+    }
+
+    @Transactional
+    public CartDTO updateCartItem(String sessionToken, Long itemId, int quantity) {
         Cart targetCart = null;
+        if (sessionToken != null && !sessionToken.trim().isEmpty()) {
+            targetCart = cartRepository.findBySessionToken(sessionToken).orElse(null);
+            if (targetCart != null) {
+                CartItem found = null;
+                for (CartItem item : targetCart.getItems()) {
+                    if (item.getId().equals(itemId)) {
+                        found = item;
+                        break;
+                    }
+                }
+                if (found != null) {
+                    if (quantity <= 0) {
+                        targetCart.getItems().remove(found);
+                    } else {
+                        found.setQuantity(quantity);
+                    }
+                    Cart saved = cartRepository.save(targetCart);
+                    return toDTO(saved);
+                }
+            }
+        }
+
+        // Search across all carts if session token not provided or item not in specified cart
         for (Cart c : cartRepository.findAll()) {
             for (CartItem item : c.getItems()) {
                 if (item.getId().equals(itemId)) {
@@ -99,6 +153,19 @@ public class CartService {
     @Transactional
     public CartDTO removeCartItem(Long itemId) {
         return updateCartItem(itemId, 0);
+    }
+
+    @Transactional
+    public CartDTO removeCartItem(String sessionToken, Long itemId) {
+        return updateCartItem(sessionToken, itemId, 0);
+    }
+
+    @Transactional
+    public CartDTO clearCart(String sessionToken) {
+        Cart cart = getOrCreateCart(sessionToken);
+        cart.getItems().clear();
+        Cart saved = cartRepository.save(cart);
+        return toDTO(saved);
     }
 
     private boolean safeEquals(String a, String b) {

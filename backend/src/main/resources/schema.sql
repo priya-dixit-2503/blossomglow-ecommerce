@@ -194,11 +194,14 @@ CREATE TABLE IF NOT EXISTS reviews (
 -- 10. Wishlist Items Table
 CREATE TABLE IF NOT EXISTS wishlist_items (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT NOT NULL,
+    user_id BIGINT,
+    session_token VARCHAR(120),
     product_id BIGINT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_user_product_wishlist (user_id, product_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    INDEX idx_wishlist_user (user_id),
+    INDEX idx_wishlist_session (session_token),
+    INDEX idx_wishlist_product (product_id)
 );
 

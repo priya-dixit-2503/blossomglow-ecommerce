@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Navbar } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
 import { FeaturedPromoSection } from './components/FeaturedPromoSection';
@@ -72,6 +72,21 @@ export default function App() {
   const [wishlistIds, setWishlistIds] = useState<string[]>(() => {
     return CandleApiService.getStoredWishlist();
   });
+  const [isWishlistLoading, setIsWishlistLoading] = useState(false);
+  const [wishlistError, setWishlistError] = useState<string | null>(null);
+
+  const loadWishlistFromApi = useCallback(async () => {
+    setIsWishlistLoading(true);
+    setWishlistError(null);
+    try {
+      const ids = await CandleApiService.getWishlist();
+      setWishlistIds(ids);
+    } catch (err: any) {
+      setWishlistError(err?.message || 'Unable to sync saved fragrances from server');
+    } finally {
+      setIsWishlistLoading(false);
+    }
+  }, []);
 
   const [couponCode, setCouponCode] = useState('GLOW10');
   const [latestOrder, setLatestOrder] = useState<Order | null>(null);
@@ -142,43 +157,90 @@ export default function App() {
         CandleApiService.syncCartWithServer(cartItems);
       }
       if (wishlistIds.length > 0) {
-        CandleApiService.syncWishlistWithServer(wishlistIds);
+        CandleApiService.syncWishlistWithServer(wishlistIds).then((serverIds) => {
+          if (serverIds && serverIds.length > 0) {
+            setWishlistIds(serverIds);
+          }
+        });
+      } else {
+        loadWishlistFromApi();
       }
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, loadWishlistFromApi]);
 
   // Persist cart
   useEffect(() => {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
   }, [cartItems]);
 
-  // Persist wishlist
+  // Persist wishlist for guest sessions (logged in users use authoritative Spring Boot DB)
   useEffect(() => {
-    CandleApiService.saveStoredWishlist(wishlistIds);
-  }, [wishlistIds]);
+    if (!currentUser && !CandleApiService.isUserLoggedIn()) {
+      CandleApiService.saveStoredWishlist(wishlistIds);
+    }
+  }, [wishlistIds, currentUser]);
 
-  const handleToggleWishlist = (productId: string) => {
-    setWishlistIds((prev) => {
-      const exists = prev.includes(productId);
-      const next = exists ? prev.filter((id) => id !== productId) : [...prev, productId];
-      CandleApiService.saveStoredWishlist(next);
-      CandleApiService.toggleWishlist(productId, next).catch(() => {});
-      return next;
-    });
+  const handleToggleWishlist = async (productId: string) => {
+    if (currentUser || CandleApiService.isUserLoggedIn()) {
+      setIsWishlistLoading(true);
+      setWishlistError(null);
+      try {
+        const next = await CandleApiService.toggleWishlist(productId);
+        setWishlistIds(next);
+      } catch (err: any) {
+        setWishlistError(err?.message || 'Failed to update saved fragrance');
+      } finally {
+        setIsWishlistLoading(false);
+      }
+    } else {
+      setWishlistIds((prev) => {
+        const exists = prev.includes(productId);
+        const next = exists ? prev.filter((id) => id !== productId) : [...prev, productId];
+        CandleApiService.saveStoredWishlist(next);
+        CandleApiService.toggleWishlist(productId, next).catch(() => {});
+        return next;
+      });
+    }
   };
 
-  const handleRemoveFromWishlist = (productId: string) => {
-    setWishlistIds((prev) => {
-      const next = prev.filter((id) => id !== productId);
-      CandleApiService.saveStoredWishlist(next);
-      CandleApiService.removeFromWishlist(productId).catch(() => {});
-      return next;
-    });
+  const handleRemoveFromWishlist = async (productId: string) => {
+    if (currentUser || CandleApiService.isUserLoggedIn()) {
+      setIsWishlistLoading(true);
+      setWishlistError(null);
+      try {
+        const next = await CandleApiService.removeFromWishlist(productId);
+        setWishlistIds(next);
+      } catch (err: any) {
+        setWishlistError(err?.message || 'Failed to remove saved fragrance');
+      } finally {
+        setIsWishlistLoading(false);
+      }
+    } else {
+      setWishlistIds((prev) => {
+        const next = prev.filter((id) => id !== productId);
+        CandleApiService.saveStoredWishlist(next);
+        CandleApiService.removeFromWishlist(productId).catch(() => {});
+        return next;
+      });
+    }
   };
 
-  const handleClearWishlist = () => {
-    setWishlistIds([]);
-    CandleApiService.clearWishlist().catch(() => {});
+  const handleClearWishlist = async () => {
+    if (currentUser || CandleApiService.isUserLoggedIn()) {
+      setIsWishlistLoading(true);
+      setWishlistError(null);
+      try {
+        await CandleApiService.clearWishlist();
+        setWishlistIds([]);
+      } catch (err: any) {
+        setWishlistError(err?.message || 'Failed to clear saved fragrances');
+      } finally {
+        setIsWishlistLoading(false);
+      }
+    } else {
+      setWishlistIds([]);
+      CandleApiService.clearWishlist().catch(() => {});
+    }
   };
 
   const handleMoveAllWishlistToBag = () => {
@@ -477,7 +539,12 @@ export default function App() {
         wishlistCount={wishlistIds.length}
         currentUser={currentUser}
         onOpenCart={() => setIsCartOpen(true)}
-        onOpenWishlist={() => setIsWishlistOpen(true)}
+        onOpenWishlist={() => {
+          setIsWishlistOpen(true);
+          if (currentUser || CandleApiService.isUserLoggedIn()) {
+            loadWishlistFromApi();
+          }
+        }}
         onOpenSearch={() => setIsSearchOpen(true)}
         onOpenAdmin={handleOpenAdmin}
         onOpenContact={() => setIsContactOpen(true)}
@@ -620,6 +687,10 @@ export default function App() {
         onMoveAllToBag={handleMoveAllWishlistToBag}
         onQuickAdd={handleQuickAdd}
         onSelectProduct={(p) => setSelectedProduct(p)}
+        isLoading={isWishlistLoading}
+        error={wishlistError}
+        onRetry={loadWishlistFromApi}
+        onWishlistUpdated={setWishlistIds}
       />
 
       <SearchModal

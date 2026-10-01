@@ -1,13 +1,12 @@
 package com.blossomglow.backend.dto;
 
 import com.blossomglow.backend.entity.OrderStatus;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -15,30 +14,18 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class OrderDTO {
     private Long id;
     private String orderNumber;
+    private Long userId;
 
-    @NotBlank(message = "Customer name is required")
     private String fullName;
-
-    @NotBlank(message = "Email is required")
-    @Email(message = "Invalid email format")
     private String email;
-
-    @NotBlank(message = "Phone number is required")
     private String phone;
-
-    @NotBlank(message = "Shipping address is required")
     private String shippingAddress;
-
-    @NotBlank(message = "City is required")
     private String city;
-
-    @NotBlank(message = "State is required")
     private String state;
-
-    @NotBlank(message = "Pincode is required")
     private String pincode;
 
     private BigDecimal subtotal;
@@ -46,27 +33,77 @@ public class OrderDTO {
     private BigDecimal shippingFee;
     private BigDecimal totalAmount;
 
-    @NotBlank(message = "Payment method is required")
     private String paymentMethod;
-
     private OrderStatus status;
     private String trackingNumber;
     private String estimatedDeliveryDate;
     private String specialInstructions;
+    private LocalDateTime createdAt;
 
-    @NotEmpty(message = "Order must contain at least one item")
     private List<OrderItemDTO> items;
+
+    private CustomerInfoDTO customerInfo;
+
+    @JsonProperty("customerInfo")
+    public void setCustomerInfo(CustomerInfoDTO customerInfo) {
+        this.customerInfo = customerInfo;
+        if (customerInfo != null) {
+            if (this.fullName == null && customerInfo.getFullName() != null) {
+                this.fullName = customerInfo.getFullName();
+            }
+            if (this.email == null && customerInfo.getEmail() != null) {
+                this.email = customerInfo.getEmail();
+            }
+            if (this.phone == null && customerInfo.getPhone() != null) {
+                this.phone = customerInfo.getPhone();
+            }
+            if (this.shippingAddress == null) {
+                this.shippingAddress = customerInfo.getShippingAddress() != null 
+                        ? customerInfo.getShippingAddress() 
+                        : customerInfo.getAddress();
+            }
+            if (this.city == null && customerInfo.getCity() != null) {
+                this.city = customerInfo.getCity();
+            }
+            if (this.state == null && customerInfo.getState() != null) {
+                this.state = customerInfo.getState();
+            }
+            if (this.pincode == null && customerInfo.getPincode() != null) {
+                this.pincode = customerInfo.getPincode();
+            }
+            if (this.specialInstructions == null && customerInfo.getSpecialInstructions() != null) {
+                this.specialInstructions = customerInfo.getSpecialInstructions();
+            }
+        }
+    }
 
     @Getter
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class CustomerInfoDTO {
+        private String fullName;
+        private String email;
+        private String phone;
+        private String address;
+        private String shippingAddress;
+        private String city;
+        private String state;
+        private String pincode;
+        private String specialInstructions;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class OrderItemDTO {
-        @NotNull(message = "Product ID is required")
-        private Long productId;
+        private Object productId;
         private String productName;
-        @NotNull(message = "Quantity is required")
         private Integer quantity;
         private BigDecimal unitPrice;
         private BigDecimal totalPrice;

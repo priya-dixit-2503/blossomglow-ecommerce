@@ -94,7 +94,15 @@ Product (1) ───< (N) ProductImage ───> Gallery [ ]
 | `POST` | `/api/cart` | Add product to cart with vessel & wick variants |
 | `PUT` | `/api/cart/{id}` | Update quantity of a cart item |
 | `DELETE` | `/api/cart/{id}` | Remove item from cart |
-| `POST` | `/api/orders` | Checkout and place new order |
+| `DELETE` | `/api/cart` | Clear entire cart |
+| `GET` | `/api/wishlist` | Get saved wishlist product IDs (via JWT or `X-Session-Token`) |
+| `POST` | `/api/wishlist/{productId}` | Add product to wishlist |
+| `DELETE` | `/api/wishlist/{productId}` | Remove product from wishlist |
+| `POST` | `/api/wishlist/toggle/{productId}` | Toggle product in wishlist |
+| `DELETE` | `/api/wishlist` | Clear entire wishlist |
+| `POST` | `/api/wishlist/sync` | Sync & merge client wishlist upon login |
+| `POST` | `/api/orders` | Checkout and place new order (automatically linked to JWT user ID) |
+| `GET` | `/api/orders/my-orders` | Get orders for logged-in customer (customer isolation) |
 | `GET` | `/api/orders/track/{orderNumber}` | Track live order status & BlueDart courier |
 | `POST` | `/api/contact` | Submit contact inquiry or custom hamper request |
 

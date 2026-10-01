@@ -10,16 +10,18 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/cart")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*", allowedHeaders = "*")
 public class CartController {
 
     private final CartService cartService;
 
     @GetMapping
-    public ResponseEntity<CartDTO> getCart(@RequestHeader(value = "X-Session-Token", required = false) String sessionToken) {
+    public ResponseEntity<CartDTO> getCart(
+            @RequestHeader(value = "X-Session-Token", required = false) String sessionToken) {
         return ResponseEntity.ok(cartService.getCartDTO(sessionToken));
     }
 
-    @PostMapping
+    @PostMapping({"", "/items"})
     public ResponseEntity<CartDTO> addToCart(
             @RequestHeader(value = "X-Session-Token", required = false) String sessionToken,
             @RequestBody AddToCartRequest request) {
@@ -33,21 +35,30 @@ public class CartController {
         ));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping({"/{id}", "/items/{id}"})
     public ResponseEntity<CartDTO> updateCartItem(
             @PathVariable Long id,
+            @RequestHeader(value = "X-Session-Token", required = false) String sessionToken,
             @RequestBody UpdateQuantityRequest request) {
-        return ResponseEntity.ok(cartService.updateCartItem(id, request.getQuantity()));
+        return ResponseEntity.ok(cartService.updateCartItem(sessionToken, id, request.getQuantity()));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<CartDTO> removeCartItem(@PathVariable Long id) {
-        return ResponseEntity.ok(cartService.removeCartItem(id));
+    @DeleteMapping({"/{id}", "/items/{id}"})
+    public ResponseEntity<CartDTO> removeCartItem(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-Session-Token", required = false) String sessionToken) {
+        return ResponseEntity.ok(cartService.removeCartItem(sessionToken, id));
+    }
+
+    @DeleteMapping
+    public ResponseEntity<CartDTO> clearCart(
+            @RequestHeader(value = "X-Session-Token", required = false) String sessionToken) {
+        return ResponseEntity.ok(cartService.clearCart(sessionToken));
     }
 
     @Data
     public static class AddToCartRequest {
-        private Long productId;
+        private Object productId;
         private int quantity = 1;
         private String selectedVessel;
         private String selectedWick;

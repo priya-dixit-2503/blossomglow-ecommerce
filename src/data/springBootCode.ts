@@ -73,56 +73,52 @@ public class CartController {
     private final CartService cartService;
 
     @GetMapping
-    public ResponseEntity<CartResponseDTO> getCart(
-            @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        String identifier = userDetails != null ? userDetails.getUsername() : sessionId;
-        return ResponseEntity.ok(cartService.getActiveCart(identifier));
+    public ResponseEntity<CartDTO> getCart(
+            @RequestHeader(value = "X-Session-Token", required = false) String sessionToken) {
+        return ResponseEntity.ok(cartService.getCartDTO(sessionToken));
     }
 
-    @PostMapping("/items")
-    public ResponseEntity<CartResponseDTO> addItemToCart(
-            @Valid @RequestBody CartItemRequestDTO request,
-            @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        String identifier = userDetails != null ? userDetails.getUsername() : sessionId;
-        return ResponseEntity.ok(cartService.addItem(identifier, request));
+    @PostMapping({"", "/items"})
+    public ResponseEntity<CartDTO> addToCart(
+            @RequestHeader(value = "X-Session-Token", required = false) String sessionToken,
+            @RequestBody AddToCartRequest request) {
+        return ResponseEntity.ok(cartService.addItemToCart(
+                sessionToken,
+                request.getProductId(),
+                request.getQuantity(),
+                request.getSelectedVessel(),
+                request.getSelectedWick(),
+                request.getSelectedSize()
+        ));
     }
 
-    @PutMapping("/items/{itemId}")
-    public ResponseEntity<CartResponseDTO> updateItemQuantity(
-            @PathVariable String itemId,
-            @RequestBody CartItemRequestDTO request,
-            @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        String identifier = userDetails != null ? userDetails.getUsername() : sessionId;
-        return ResponseEntity.ok(cartService.updateQuantity(identifier, itemId, request.getQuantity()));
+    @PutMapping({"/{id}", "/items/{id}"})
+    public ResponseEntity<CartDTO> updateCartItem(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-Session-Token", required = false) String sessionToken,
+            @RequestBody UpdateQuantityRequest request) {
+        return ResponseEntity.ok(cartService.updateCartItem(sessionToken, id, request.getQuantity()));
     }
 
-    @DeleteMapping("/items/{itemId}")
-    public ResponseEntity<CartResponseDTO> removeItem(
-            @PathVariable String itemId,
-            @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        String identifier = userDetails != null ? userDetails.getUsername() : sessionId;
-        return ResponseEntity.ok(cartService.removeItem(identifier, itemId));
+    @DeleteMapping({"/{id}", "/items/{id}"})
+    public ResponseEntity<CartDTO> removeCartItem(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-Session-Token", required = false) String sessionToken) {
+        return ResponseEntity.ok(cartService.removeCartItem(sessionToken, id));
     }
 
     @DeleteMapping
-    public ResponseEntity<Void> clearCart(
-            @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        String identifier = userDetails != null ? userDetails.getUsername() : sessionId;
-        cartService.clearCart(identifier);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<CartDTO> clearCart(
+            @RequestHeader(value = "X-Session-Token", required = false) String sessionToken) {
+        return ResponseEntity.ok(cartService.clearCart(sessionToken));
     }
 
     @PostMapping("/sync")
     public ResponseEntity<CartResponseDTO> syncCart(
             @RequestBody CartResponseDTO clientCart,
-            @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
+            @RequestHeader(value = "X-Session-Token", required = false) String sessionToken,
             @AuthenticationPrincipal UserDetails userDetails) {
-        String identifier = userDetails != null ? userDetails.getUsername() : sessionId;
+        String identifier = userDetails != null ? userDetails.getUsername() : sessionToken;
         return ResponseEntity.ok(cartService.mergeCart(identifier, clientCart));
     }
 }`
@@ -154,44 +150,44 @@ public class WishlistController {
 
     @GetMapping
     public ResponseEntity<List<String>> getWishlist(
-            @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
+            @RequestHeader(value = "X-Session-Token", required = false) String sessionToken,
             @AuthenticationPrincipal UserDetails userDetails) {
-        String identifier = userDetails != null ? userDetails.getUsername() : sessionId;
+        String identifier = userDetails != null ? userDetails.getUsername() : sessionToken;
         return ResponseEntity.ok(wishlistService.getWishlistProductIds(identifier));
     }
 
     @PostMapping("/{productId}")
     public ResponseEntity<List<String>> addToWishlist(
             @PathVariable String productId,
-            @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
+            @RequestHeader(value = "X-Session-Token", required = false) String sessionToken,
             @AuthenticationPrincipal UserDetails userDetails) {
-        String identifier = userDetails != null ? userDetails.getUsername() : sessionId;
+        String identifier = userDetails != null ? userDetails.getUsername() : sessionToken;
         return ResponseEntity.ok(wishlistService.addProduct(identifier, productId));
     }
 
     @DeleteMapping("/{productId}")
     public ResponseEntity<List<String>> removeFromWishlist(
             @PathVariable String productId,
-            @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
+            @RequestHeader(value = "X-Session-Token", required = false) String sessionToken,
             @AuthenticationPrincipal UserDetails userDetails) {
-        String identifier = userDetails != null ? userDetails.getUsername() : sessionId;
+        String identifier = userDetails != null ? userDetails.getUsername() : sessionToken;
         return ResponseEntity.ok(wishlistService.removeProduct(identifier, productId));
     }
 
     @PostMapping("/toggle/{productId}")
     public ResponseEntity<List<String>> toggleWishlist(
             @PathVariable String productId,
-            @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
+            @RequestHeader(value = "X-Session-Token", required = false) String sessionToken,
             @AuthenticationPrincipal UserDetails userDetails) {
-        String identifier = userDetails != null ? userDetails.getUsername() : sessionId;
+        String identifier = userDetails != null ? userDetails.getUsername() : sessionToken;
         return ResponseEntity.ok(wishlistService.toggleProduct(identifier, productId));
     }
 
     @DeleteMapping
     public ResponseEntity<Void> clearWishlist(
-            @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
+            @RequestHeader(value = "X-Session-Token", required = false) String sessionToken,
             @AuthenticationPrincipal UserDetails userDetails) {
-        String identifier = userDetails != null ? userDetails.getUsername() : sessionId;
+        String identifier = userDetails != null ? userDetails.getUsername() : sessionToken;
         wishlistService.clearWishlist(identifier);
         return ResponseEntity.noContent().build();
     }
@@ -199,9 +195,9 @@ public class WishlistController {
     @PostMapping("/sync")
     public ResponseEntity<List<String>> syncWishlist(
             @RequestBody WishlistSyncRequestDTO syncRequest,
-            @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
+            @RequestHeader(value = "X-Session-Token", required = false) String sessionToken,
             @AuthenticationPrincipal UserDetails userDetails) {
-        String identifier = userDetails != null ? userDetails.getUsername() : sessionId;
+        String identifier = userDetails != null ? userDetails.getUsername() : sessionToken;
         return ResponseEntity.ok(wishlistService.mergeWishlist(identifier, syncRequest.getProductIds()));
     }
 }`
@@ -411,7 +407,7 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOriginPatterns(List.of("http://localhost:3000", "https://*.run.app"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Session-ID", "X-Requested-With"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Session-Token", "X-Requested-With"));
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

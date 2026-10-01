@@ -115,7 +115,7 @@ public class UserController {
     @Operation(summary = "Get order history for authenticated customer")
     public ResponseEntity<List<OrderDTO>> getMyOrders() {
         User user = getAuthenticatedUser();
-        List<OrderDTO> orders = orderService.getOrdersByEmail(user.getEmail());
+        List<OrderDTO> orders = orderService.getOrdersForUser(user);
         return ResponseEntity.ok(orders);
     }
 

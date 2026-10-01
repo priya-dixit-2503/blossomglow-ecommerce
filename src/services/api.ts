@@ -9,22 +9,42 @@ const PRODUCTS_STORAGE_KEY = 'blossomglow_artisan_catalog_v2026_18photos';
 const CONTACT_STORAGE_KEY = 'auradecor_contact_messages_v3';
 const REVIEWS_STORAGE_KEY = 'auradecor_reviews_v3';
 const CART_STORAGE_KEY = 'auradecor_cart_v3';
-const CART_SESSION_KEY = 'bg_cart_session_id';
+const CART_SESSION_TOKEN_KEY = 'bg_cart_session_token';
 const AUTH_TOKEN_KEY = 'bg_jwt_token';
 const AUTH_USER_KEY = 'bg_auth_user';
 
-export function getCartSessionId(): string {
+export function getCartSessionToken(): string {
   try {
-    let id = localStorage.getItem(CART_SESSION_KEY);
-    if (!id) {
-      id = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-      localStorage.setItem(CART_SESSION_KEY, id);
+    let token = localStorage.getItem(CART_SESSION_TOKEN_KEY);
+    if (!token) {
+      // Migrate from legacy session key if present
+      token = localStorage.getItem('bg_cart_session_id');
+      if (token) {
+        localStorage.setItem(CART_SESSION_TOKEN_KEY, token);
+      }
     }
-    return id;
+    if (!token) {
+      token = `token_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      localStorage.setItem(CART_SESSION_TOKEN_KEY, token);
+    }
+    return token;
   } catch {
-    return 'sess_fallback';
+    return 'token_fallback';
   }
 }
+
+export function saveCartSessionToken(token: string): void {
+  try {
+    if (token && typeof token === 'string' && token.trim().length > 0) {
+      localStorage.setItem(CART_SESSION_TOKEN_KEY, token.trim());
+    }
+  } catch {
+    // ignore
+  }
+}
+
+// Backward-compatible alias
+export const getCartSessionId = getCartSessionToken;
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
@@ -36,18 +56,74 @@ const axiosClient: AxiosInstance = axios.create({
   },
 });
 
-// Auto-inject JWT Bearer token & session ID into all requests (skip mock tokens)
+// Auto-inject JWT Bearer token & session token into all requests (skip mock tokens)
 axiosClient.interceptors.request.use((config) => {
   const token = localStorage.getItem(AUTH_TOKEN_KEY);
   if (token && !token.startsWith('mock-jwt-') && token.split('.').length === 3 && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  const sessionId = getCartSessionId();
-  if (sessionId && config.headers) {
-    config.headers['X-Session-ID'] = sessionId;
+  const sessionToken = getCartSessionToken();
+  if (sessionToken && config.headers) {
+    config.headers['X-Session-Token'] = sessionToken;
   }
   return config;
 });
+
+// Auto-capture server session token if provided by backend in CartDTO or headers
+axiosClient.interceptors.response.use(
+  (response) => {
+    if (response.data && response.data.sessionToken) {
+      saveCartSessionToken(response.data.sessionToken);
+    }
+    const headerToken = response.headers?.['x-session-token'];
+    if (headerToken && typeof headerToken === 'string') {
+      saveCartSessionToken(headerToken);
+    }
+    return response;
+  },
+  (error) => Promise.reject(error)
+);
+
+const SLUG_TO_ID_MAP: Record<string, number> = {
+  'bg-floral-garden': 1,
+  'floral-garden': 1,
+  'bg-natural-spice': 2,
+  'natural-spice': 2,
+  'bg-buddha-serenity': 3,
+  'buddha-serenity': 3,
+  'bg-lotus-glow': 4,
+  'lotus-glow': 4,
+  'bg-minimal-ribbed': 5,
+  'minimal-ribbed': 5,
+  'bg-evil-eye-gift-box': 6,
+  'evil-eye-gift-box': 6,
+  'bg-wooden-dough-bowl': 7,
+  'wooden-dough-bowl': 7,
+  'bg-gilded-lotus-hamper': 8,
+  'gilded-lotus-hamper': 8,
+  'bg-fluted-marbled-tray-duo': 9,
+  'fluted-marbled-tray-duo': 9,
+  'bg-fluted-carousel-jar': 10,
+  'fluted-carousel-jar': 10,
+  'bg-terrazzo-arch-vase': 11,
+  'terrazzo-arch-vase': 11,
+  'bg-hollow-arch-bud-vase': 12,
+  'hollow-arch-bud-vase': 12,
+  'bg-wavy-ripple-tray': 13,
+  'wavy-ripple-tray': 13,
+  'bg-concrete-arch-clock': 14,
+  'concrete-arch-clock': 14,
+  'bg-teddy-baby-shower': 15,
+  'teddy-baby-shower': 15,
+  'bg-baby-elephant': 16,
+  'baby-elephant': 16,
+  'bg-abstract-thinkers': 17,
+  'abstract-thinkers': 17,
+  'bg-teddy-lotus-blossom': 18,
+  'teddy-lotus-blossom': 18,
+  'bg-oceanic-seashell': 19,
+  'oceanic-seashell': 19,
+};
 
 export class CandleApiService {
   private static isBackendLive: boolean | null = null;
@@ -680,16 +756,28 @@ export class CandleApiService {
     const serverOrderPayload = {
       orderNumber,
       customerId: currentUser.id,
+      userId: !isNaN(Number(currentUser.id)) ? Number(currentUser.id) : undefined,
+      fullName: orderData.customerInfo.fullName || currentUser.fullName,
+      email: currentUser.email,
+      phone: orderData.customerInfo.phone,
+      shippingAddress: orderData.customerInfo.address,
+      city: orderData.customerInfo.city,
+      state: orderData.customerInfo.state,
+      pincode: orderData.customerInfo.pincode,
+      specialInstructions: orderData.customerInfo.specialInstructions || '',
+      paymentMethod: orderData.paymentMethod,
       items: authoritativeItems.map((i) => ({
         productId: i.productId,
+        productName: i.product?.name,
         quantity: i.quantity,
+        unitPrice: i.itemPrice,
         selectedVessel: i.selectedVessel,
         selectedWick: i.selectedWick,
         selectedSize: i.selectedSize,
       })),
       couponCode: effectiveCoupon || null,
       customerInfo: {
-        fullName: orderData.customerInfo.fullName,
+        fullName: orderData.customerInfo.fullName || currentUser.fullName,
         email: currentUser.email, // Bound to authenticated principal
         phone: orderData.customerInfo.phone,
         shippingAddress: orderData.customerInfo.address,
@@ -698,7 +786,6 @@ export class CandleApiService {
         pincode: orderData.customerInfo.pincode,
         specialInstructions: orderData.customerInfo.specialInstructions || '',
       },
-      paymentMethod: orderData.paymentMethod,
     };
 
     let confirmedOrder: Order;
@@ -788,21 +875,61 @@ export class CandleApiService {
     }
 
     try {
-      const response = await axiosClient.get<Order[]>('/orders/my-orders');
-      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
-        return response.data;
+      const response = await axiosClient.get<any[]>('/orders/my-orders');
+      if (response.data && Array.isArray(response.data)) {
+        this.isBackendLive = true;
+        return response.data.map((dto: any) => ({
+          id: String(dto.id),
+          orderNumber: dto.orderNumber,
+          userId: dto.userId ? String(dto.userId) : currentUser.id,
+          customerInfo: {
+            fullName: dto.fullName || dto.customerInfo?.fullName || currentUser.fullName,
+            email: dto.email || dto.customerInfo?.email || currentUser.email,
+            phone: dto.phone || dto.customerInfo?.phone || '',
+            address: dto.shippingAddress || dto.customerInfo?.shippingAddress || dto.customerInfo?.address || '',
+            city: dto.city || dto.customerInfo?.city || '',
+            state: dto.state || dto.customerInfo?.state || '',
+            pincode: dto.pincode || dto.customerInfo?.pincode || '',
+            specialInstructions: dto.specialInstructions || '',
+          },
+          items: (dto.items || []).map((it: any) => ({
+            id: String(it.id || it.productId),
+            productId: String(it.productId),
+            product: {
+              id: String(it.productId),
+              name: it.productName || 'Artisanal Candle',
+              price: Number(it.unitPrice || 499),
+            } as any,
+            quantity: Number(it.quantity || 1),
+            selectedVessel: it.selectedVessel || 'Fluted Ivory',
+            selectedWick: it.selectedWick || 'Organic Cotton Wick',
+            selectedSize: it.selectedSize || '280g (Double Wick)',
+            itemPrice: Number(it.unitPrice || 499),
+          })),
+          subtotal: Number(dto.subtotal || 0),
+          discount: Number(dto.discount || 0),
+          shippingFee: Number(dto.shippingFee || 0),
+          totalAmount: Number(dto.totalAmount || 0),
+          paymentMethod: dto.paymentMethod || 'Cash on Delivery',
+          status: dto.status || 'Confirmed',
+          trackingNumber: dto.trackingNumber || '',
+          estimatedDeliveryDate: dto.estimatedDeliveryDate || '',
+          createdAt: dto.createdAt || new Date().toISOString(),
+        }));
       }
     } catch {
       // fallback
     }
 
-    // Strict customer isolation fallback: only orders matching the customer's email
+    // Strict customer isolation fallback: only orders matching the customer's email or userId
     const allStored = this.getStoredOrders();
     if (currentUser.role === 'ROLE_ADMIN') {
       return allStored;
     }
     return allStored.filter(
-      (o) => o.customerInfo.email.toLowerCase().trim() === currentUser.email.toLowerCase().trim()
+      (o) =>
+        (o as any).userId === currentUser.id ||
+        (o.customerInfo && o.customerInfo.email.toLowerCase().trim() === currentUser.email.toLowerCase().trim())
     );
   }
 
@@ -951,7 +1078,43 @@ export class CandleApiService {
   }
 
   /**
-   * Fetches active cart from Spring Boot backend (/api/cart)
+   * Helper to normalize CartDTO server response into client CartItem array
+   */
+  private static mapServerCartResponse(data: any): CartItem[] {
+    if (data && data.sessionToken) {
+      saveCartSessionToken(data.sessionToken);
+    }
+
+    const serverItems = Array.isArray(data)
+      ? data
+      : data?.items || [];
+
+    if (!Array.isArray(serverItems)) return [];
+
+    return serverItems.map((item: any) => ({
+      id: String(item.id || `cart-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`),
+      productId: String(item.productId || item.product?.id || item.product?.slug || ''),
+      product: item.product
+        ? normalizeProduct(item.product)
+        : normalizeProduct({
+            id: item.productId,
+            name: item.productName || 'Artisanal Candle',
+            price: item.unitPrice || item.itemPrice || 499,
+            image: item.imageUrl || item.image,
+            selectedVessel: item.selectedVessel,
+            selectedWick: item.selectedWick,
+            selectedSize: item.selectedSize,
+          }),
+      quantity: Number(item.quantity) || 1,
+      selectedVessel: (item.selectedVessel || 'Fluted Ivory') as VesselColor,
+      selectedWick: (item.selectedWick || 'Crackling Wood Wick') as WickType,
+      selectedSize: (item.selectedSize || '280g (Double Wick)') as CandleSize,
+      itemPrice: Number(item.itemPrice || item.unitPrice) || 499,
+    }));
+  }
+
+  /**
+   * Fetches active cart from Spring Boot backend (GET /api/cart)
    * Falls back gracefully to local storage if Spring Boot is offline
    */
   static async getCart(): Promise<CartItem[]> {
@@ -959,27 +1122,8 @@ export class CandleApiService {
       const response = await axiosClient.get<any>('/cart');
       if (response.data) {
         this.isBackendLive = true;
-        const serverItems = Array.isArray(response.data)
-          ? response.data
-          : response.data.items || [];
-
-        if (Array.isArray(serverItems) && serverItems.length > 0) {
-          const mapped: CartItem[] = serverItems.map((item: any) => ({
-            id: String(item.id || `cart-${Date.now()}-${Math.random()}`),
-            productId: String(item.productId || item.product?.id),
-            product: item.product
-              ? normalizeProduct(item.product)
-              : normalizeProduct({
-                  id: item.productId,
-                  name: item.productName || 'Artisanal Candle',
-                  price: item.unitPrice || item.itemPrice || 499,
-                }),
-            quantity: Number(item.quantity) || 1,
-            selectedVessel: item.selectedVessel || 'Fluted Ivory',
-            selectedWick: item.selectedWick || 'Crackling Wood Wick',
-            selectedSize: item.selectedSize || '280g (Double Wick)',
-            itemPrice: Number(item.itemPrice || item.unitPrice) || 499,
-          }));
+        const mapped = this.mapServerCartResponse(response.data);
+        if (mapped.length > 0) {
           this.saveStoredCart(mapped);
           return mapped;
         }
@@ -991,7 +1135,8 @@ export class CandleApiService {
   }
 
   /**
-   * Adds an item to the Spring Boot cart via POST /api/cart/items
+   * Adds an item to the Spring Boot cart via POST /api/cart
+   * Exactly matches backend CartController @PostMapping on /api/cart
    */
   static async addItemToCart(item: CartItem): Promise<CartItem[]> {
     const local = this.getStoredCart();
@@ -1013,18 +1158,26 @@ export class CandleApiService {
     this.saveStoredCart(updated);
 
     try {
+      const cleanId = String(item.productId || '').toLowerCase().trim();
+      const resolvedProductId = SLUG_TO_ID_MAP[cleanId] || (parseInt(cleanId, 10) || item.productId);
+
       const payload = {
-        productId: item.productId,
-        productName: item.product?.name,
+        productId: resolvedProductId,
         quantity: item.quantity,
         selectedVessel: item.selectedVessel,
         selectedWick: item.selectedWick,
         selectedSize: item.selectedSize,
-        unitPrice: item.itemPrice,
-        itemPrice: item.itemPrice,
       };
-      await axiosClient.post('/cart/items', payload);
-      this.isBackendLive = true;
+
+      const response = await axiosClient.post('/cart', payload);
+      if (response.data) {
+        this.isBackendLive = true;
+        const mapped = this.mapServerCartResponse(response.data);
+        if (mapped.length > 0) {
+          this.saveStoredCart(mapped);
+          return mapped;
+        }
+      }
     } catch {
       // Offline mode maintained
     }
@@ -1032,7 +1185,8 @@ export class CandleApiService {
   }
 
   /**
-   * Updates cart item quantity via PUT /api/cart/items/{itemId}
+   * Updates cart item quantity via PUT /api/cart/{id}
+   * Exactly matches backend CartController @PutMapping("/{id}") on /api/cart
    */
   static async updateCartItemQuantity(itemId: string, newQty: number): Promise<CartItem[]> {
     const local = this.getStoredCart();
@@ -1045,12 +1199,21 @@ export class CandleApiService {
     this.saveStoredCart(updated);
 
     try {
+      let response;
       if (newQty <= 0) {
-        await axiosClient.delete(`/cart/items/${itemId}`);
+        // DELETE /api/cart/{id}
+        response = await axiosClient.delete(`/cart/${itemId}`);
       } else {
-        await axiosClient.put(`/cart/items/${itemId}`, { quantity: newQty });
+        // PUT /api/cart/{id}
+        response = await axiosClient.put(`/cart/${itemId}`, { quantity: newQty });
       }
-      this.isBackendLive = true;
+
+      if (response && response.data) {
+        this.isBackendLive = true;
+        const mapped = this.mapServerCartResponse(response.data);
+        this.saveStoredCart(mapped);
+        return mapped;
+      }
     } catch {
       // Offline mode
     }
@@ -1058,7 +1221,8 @@ export class CandleApiService {
   }
 
   /**
-   * Removes item from Spring Boot cart via DELETE /api/cart/items/{itemId}
+   * Removes item from Spring Boot cart via DELETE /api/cart/{id}
+   * Exactly matches backend CartController @DeleteMapping("/{id}") on /api/cart
    */
   static async removeCartItem(itemId: string): Promise<CartItem[]> {
     const local = this.getStoredCart();
@@ -1066,8 +1230,13 @@ export class CandleApiService {
     this.saveStoredCart(updated);
 
     try {
-      await axiosClient.delete(`/cart/items/${itemId}`);
-      this.isBackendLive = true;
+      const response = await axiosClient.delete(`/cart/${itemId}`);
+      if (response && response.data) {
+        this.isBackendLive = true;
+        const mapped = this.mapServerCartResponse(response.data);
+        this.saveStoredCart(mapped);
+        return mapped;
+      }
     } catch {
       // Offline mode
     }
@@ -1076,6 +1245,7 @@ export class CandleApiService {
 
   /**
    * Clears the entire cart via DELETE /api/cart
+   * Exactly matches backend CartController @DeleteMapping on /api/cart
    */
   static async clearCart(): Promise<void> {
     this.saveStoredCart([]);
@@ -1089,23 +1259,24 @@ export class CandleApiService {
 
   /**
    * Syncs client cart items to Spring Boot backend upon login or app launch
+   * Iterates through items and adds each via POST /api/cart
    */
   static async syncCartWithServer(items: CartItem[]): Promise<CartItem[]> {
     if (!items || items.length === 0) return items;
     try {
-      const payload = {
-        items: items.map((i) => ({
-          productId: i.productId,
-          productName: i.product?.name,
-          quantity: i.quantity,
-          selectedVessel: i.selectedVessel,
-          selectedWick: i.selectedWick,
-          selectedSize: i.selectedSize,
-          unitPrice: i.itemPrice,
-        })),
-      };
-      await axiosClient.post('/cart/sync', payload);
+      for (const item of items) {
+        const cleanId = String(item.productId || '').toLowerCase().trim();
+        const resolvedProductId = SLUG_TO_ID_MAP[cleanId] || (parseInt(cleanId, 10) || item.productId);
+        await axiosClient.post('/cart', {
+          productId: resolvedProductId,
+          quantity: item.quantity,
+          selectedVessel: item.selectedVessel,
+          selectedWick: item.selectedWick,
+          selectedSize: item.selectedSize,
+        });
+      }
       this.isBackendLive = true;
+      return await this.getCart();
     } catch {
       // Offline mode
     }
@@ -1134,10 +1305,45 @@ export class CandleApiService {
   }
 
   /**
+   * Checks whether a customer or administrator is currently authenticated with JWT
+   */
+  static isUserLoggedIn(): boolean {
+    try {
+      const user = localStorage.getItem(AUTH_USER_KEY);
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      return Boolean(user || (token && !token.startsWith('mock-jwt-')));
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Fetches user's saved wishlist from Spring Boot backend (/api/wishlist)
-   * Falls back gracefully to local storage if Spring Boot is offline
+   * For logged-in users, relies authoritatively on the Spring Boot API.
+   * Falls back gracefully to local storage if Spring Boot is offline or for guest users.
    */
   static async getWishlist(): Promise<string[]> {
+    if (this.isUserLoggedIn()) {
+      try {
+        const response = await axiosClient.get<any>('/wishlist');
+        if (response.data) {
+          this.isBackendLive = true;
+          const items = Array.isArray(response.data)
+            ? response.data
+            : response.data.productIds || response.data.items || [];
+          const ids: string[] = items.map((item: any) =>
+            typeof item === 'string' ? item : String(item.productId || item.id)
+          );
+          this.saveStoredWishlist(ids);
+          return ids;
+        }
+      } catch (err: any) {
+        if (err.response) {
+          throw new Error(err.response?.data?.message || 'Failed to fetch saved fragrances from server');
+        }
+      }
+    }
+
     try {
       const response = await axiosClient.get<any>('/wishlist');
       if (response.data) {
@@ -1160,8 +1366,22 @@ export class CandleApiService {
 
   /**
    * Adds product to wishlist via POST /api/wishlist/{productId}
+   * For logged-in users, executes via Spring Boot API directly without localStorage logic
    */
   static async addToWishlist(productId: string): Promise<string[]> {
+    if (this.isUserLoggedIn()) {
+      const response = await axiosClient.post<any>(`/wishlist/${productId}`);
+      this.isBackendLive = true;
+      const items = Array.isArray(response.data)
+        ? response.data
+        : response.data?.productIds || [];
+      const ids: string[] = items.map((item: any) =>
+        typeof item === 'string' ? item : String(item.productId || item.id)
+      );
+      this.saveStoredWishlist(ids);
+      return ids;
+    }
+
     const list = this.getStoredWishlist();
     if (!list.includes(productId)) {
       list.push(productId);
@@ -1179,8 +1399,22 @@ export class CandleApiService {
 
   /**
    * Removes product from wishlist via DELETE /api/wishlist/{productId}
+   * For logged-in users, executes via Spring Boot API directly
    */
   static async removeFromWishlist(productId: string): Promise<string[]> {
+    if (this.isUserLoggedIn()) {
+      const response = await axiosClient.delete<any>(`/wishlist/${productId}`);
+      this.isBackendLive = true;
+      const items = Array.isArray(response.data)
+        ? response.data
+        : response.data?.productIds || [];
+      const ids: string[] = items.map((item: any) =>
+        typeof item === 'string' ? item : String(item.productId || item.id)
+      );
+      this.saveStoredWishlist(ids);
+      return ids;
+    }
+
     const list = this.getStoredWishlist().filter((id) => id !== productId);
     this.saveStoredWishlist(list);
 
@@ -1195,8 +1429,22 @@ export class CandleApiService {
 
   /**
    * Toggles product in wishlist via POST /api/wishlist/toggle/{productId}
+   * For logged-in users, executes via Spring Boot API directly
    */
   static async toggleWishlist(productId: string, explicitList?: string[]): Promise<string[]> {
+    if (this.isUserLoggedIn()) {
+      const response = await axiosClient.post<any>(`/wishlist/toggle/${productId}`);
+      this.isBackendLive = true;
+      const items = Array.isArray(response.data)
+        ? response.data
+        : response.data?.productIds || [];
+      const ids: string[] = items.map((item: any) =>
+        typeof item === 'string' ? item : String(item.productId || item.id)
+      );
+      this.saveStoredWishlist(ids);
+      return ids;
+    }
+
     let updated: string[];
     if (explicitList) {
       updated = explicitList;
@@ -1218,8 +1466,16 @@ export class CandleApiService {
 
   /**
    * Clears entire wishlist via DELETE /api/wishlist
+   * For logged-in users, executes via Spring Boot API directly
    */
   static async clearWishlist(): Promise<void> {
+    if (this.isUserLoggedIn()) {
+      await axiosClient.delete('/wishlist');
+      this.isBackendLive = true;
+      this.saveStoredWishlist([]);
+      return;
+    }
+
     this.saveStoredWishlist([]);
     try {
       await axiosClient.delete('/wishlist');

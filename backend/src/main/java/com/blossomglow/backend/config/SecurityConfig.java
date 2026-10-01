@@ -39,7 +39,7 @@ public class SecurityConfig {
                 // Allow all CORS preflight OPTIONS requests unconditionally
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // Root & Swagger docs
+                // Root, static assets & Swagger documentation
                 .requestMatchers(
                     "/",
                     "/api",
@@ -52,22 +52,34 @@ public class SecurityConfig {
                     "/swagger-ui.html"
                 ).permitAll()
 
-                // Public Authentication
+                // Public customer authentication & registration
                 .requestMatchers(
                     "/api/auth/login",
                     "/api/auth/register"
                 ).permitAll()
 
-                // Public storefront and catalog endpoints (all GET, search, etc.)
+                // 1. PUBLIC PRODUCT & CATEGORY BROWSING (GET operations only)
+                .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/categories", "/api/categories/**").permitAll()
+
+                // 2. SECURED PRODUCT MUTATIONS: CREATE, UPDATE, DELETE REQUIRE ADMIN ROLE (via JWT)
+                .requestMatchers(HttpMethod.POST, "/api/products", "/api/products/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/products", "/api/products/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/products", "/api/products/**").hasRole("ADMIN")
+
+                // 3. SECURED CATEGORY MUTATIONS: CREATE, UPDATE, DELETE REQUIRE ADMIN ROLE (via JWT)
+                .requestMatchers(HttpMethod.POST, "/api/categories", "/api/categories/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/categories", "/api/categories/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/categories", "/api/categories/**").hasRole("ADMIN")
+
+                // Public storefront interactive endpoints (reviews, cart, wishlist, orders, tracking, contact)
                 .requestMatchers(
-                    "/api/products",
-                    "/api/products/**",
-                    "/api/categories",
-                    "/api/categories/**",
                     "/api/reviews",
                     "/api/reviews/**",
                     "/api/cart",
                     "/api/cart/**",
+                    "/api/wishlist",
+                    "/api/wishlist/**",
                     "/api/orders",
                     "/api/orders/track",
                     "/api/orders/track/**",
@@ -79,14 +91,13 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/api/auth/me",
                     "/api/user/**",
-                    "/api/orders/my-orders",
-                    "/api/wishlist/**"
+                    "/api/orders/my-orders"
                 ).authenticated()
 
-                // Admin endpoints (secured by role)
+                // Admin-only endpoints prefix
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                // Fallback: permit any other unmapped read
+                // Any other request fallback
                 .anyRequest().permitAll()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

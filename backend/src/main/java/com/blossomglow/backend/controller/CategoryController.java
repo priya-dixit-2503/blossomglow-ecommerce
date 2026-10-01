@@ -2,65 +2,40 @@ package com.blossomglow.backend.controller;
 
 import com.blossomglow.backend.dto.CategoryDTO;
 import com.blossomglow.backend.service.CategoryService;
-import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 /**
- * Public & Admin Category Controller
+ * Public Storefront Category Controller
+ * Handles read-only browsing of candle collections and categories.
+ * Administrative operations (create, update, delete) are exclusively handled by AdminCategoryController.
  * Routes:
- * - GET    /api/categories
- * - GET    /api/categories/{id}
- * - POST   /api/categories        (ROLE_ADMIN)
- * - PUT    /api/categories/{id}   (ROLE_ADMIN)
- * - DELETE /api/categories/{id}   (ROLE_ADMIN)
+ * - GET /api/categories
+ * - GET /api/categories/{id}
  */
 @RestController
 @RequestMapping("/api/categories")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*", allowedHeaders = "*")
+@Tag(name = "Categories", description = "Public storefront category browsing APIs")
 public class CategoryController {
 
     private final CategoryService categoryService;
 
     @GetMapping
+    @Operation(summary = "Get all candle collections & categories", description = "Public storefront endpoint for viewing category catalog")
     public ResponseEntity<List<CategoryDTO>> getCategories() {
         return ResponseEntity.ok(categoryService.getAllCategories());
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get category by ID", description = "Public storefront endpoint for retrieving category details")
     public ResponseEntity<CategoryDTO> getCategoryById(@PathVariable Long id) {
         return ResponseEntity.ok(categoryService.getCategoryById(id));
-    }
-
-    @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CategoryDTO> createCategory(@Valid @RequestBody CategoryDTO categoryDTO) {
-        CategoryDTO created = categoryService.createCategory(categoryDTO);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
-    }
-
-    @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CategoryDTO> updateCategory(
-            @PathVariable Long id,
-            @Valid @RequestBody CategoryDTO categoryDTO) {
-        CategoryDTO updated = categoryService.updateCategory(id, categoryDTO);
-        return ResponseEntity.ok(updated);
-    }
-
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Map<String, Object>> deleteCategory(@PathVariable Long id) {
-        categoryService.deleteCategory(id);
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "Category with id " + id + " was successfully deleted."
-        ));
     }
 }
