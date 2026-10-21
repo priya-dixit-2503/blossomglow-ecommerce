@@ -1,8 +1,5 @@
 -- BlossomGlow Candle Creations - MySQL Database Schema
--- Compatible with MySQL 8.0+ and MariaDB
-
-CREATE DATABASE IF NOT EXISTS blossomglow_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE blossomglow_db;
+-- Compatible with MySQL 8.0+, 8.4+, 9.0+ and MariaDB
 
 -- 1. Users Table (Customer & Admin accounts)
 CREATE TABLE IF NOT EXISTS users (
@@ -135,7 +132,7 @@ CREATE TABLE IF NOT EXISTS orders (
     shipping_fee DECIMAL(10, 2) DEFAULT 0.00,
     total_amount DECIMAL(10, 2) NOT NULL,
     payment_method VARCHAR(50) NOT NULL,
-    status ENUM('Pending', 'Confirmed', 'Preparing', 'Shipped', 'Delivered', 'Cancelled') NOT NULL DEFAULT 'Confirmed',
+    status VARCHAR(30) NOT NULL DEFAULT 'Confirmed',
     tracking_number VARCHAR(100),
     estimated_delivery_date VARCHAR(100),
     special_instructions TEXT,

@@ -1,24 +1,22 @@
 -- BlossomGlow Candle Creations - Initial Seed Data for MySQL
 
 -- Insert Default Admin User
-INSERT INTO users (id, username, email, password_hash, full_name, phone, role)
+INSERT IGNORE INTO users (id, username, email, password_hash, full_name, phone, role)
 VALUES
-(1, 'admin', 'admin@blossomglow.in', '$2a$10$7Q9E1K4B0j8R3/4QoZ1jIe6uX6qjG3r4jT0uO9iB5vE1r6qjG3r4j', 'BlossomGlow Admin', '+91 98290 12345', 'ROLE_ADMIN')
-ON DUPLICATE KEY UPDATE username=username;
+(1, 'admin', 'admin@blossomglow.in', '$2a$10$7Q9E1K4B0j8R3/4QoZ1jIe6uX6qjG3r4jT0uO9iB5vE1r6qjG3r4j', 'BlossomGlow Admin', '+91 98290 12345', 'ROLE_ADMIN');
 
 -- Insert Categories
-INSERT INTO categories (id, name, slug, description, image_url, display_order)
+INSERT IGNORE INTO categories (id, name, slug, description, image_url, display_order)
 VALUES
 (1, 'Gift Candles', 'gift-candles', 'Elegantly packaged artisanal candles ready for gifting and celebrations', '/products/floral-garden.jpg', 1),
 (2, 'Scented Candles', 'scented-candles', 'Aromatherapy candles infused with pure therapeutic essential oils', '/products/natural-spice.jpg', 2),
 (3, 'Meditation Candles', 'meditation-candles', 'Sacred and calming silhouettes crafted for zen sanctuaries and mindfulness', '/products/buddha-serenity.jpg', 3),
 (4, 'Decorative Candles', 'decorative-candles', 'Sculptural botanical candles that elevate your table and mantelpiece', '/products/lotus-glow.jpg', 4),
 (5, 'Home Décor Candles', 'home-decor-candles', 'Architectural silhouettes and textured vessels for contemporary living spaces', '/products/minimal-ribbed.jpg', 5),
-(6, 'Gift Hampers', 'gift-hampers', 'Curated luxury gift chest hampers with custom handwritten cards', '/products/evil-eye-gift-box.jpg', 6)
-ON DUPLICATE KEY UPDATE name=name, image_url=VALUES(image_url);
+(6, 'Gift Hampers', 'gift-hampers', 'Curated luxury gift chest hampers with custom handwritten cards', '/products/evil-eye-gift-box.jpg', 6);
 
 -- Insert Flagship 5 Products + Curated Catalog
-INSERT INTO products (
+INSERT IGNORE INTO products (
     id, slug, name, tagline, category_id, category_name, fragrance_family,
     price, original_price, rating, reviews_count, image_url,
     burn_time_hours, weight_grams, scent_intensity, description, artisan_story,
@@ -93,11 +91,10 @@ INSERT INTO products (
     'Artfully carved from reclaimed natural wood into an oblong rustic trough boat silhouette. Filled with slow-cured soy wax and multiple cotton wicks, lavishly decorated with real dried rosebuds, star anise, and miniature pinecones.',
     'Each wooden vessel is carved by traditional wood artisans, making every piece entirely one-of-a-kind.',
     '100% Organic Soy Wax', '28cm x 14cm x 6cm', TRUE, 15, TRUE, FALSE, 'Heritage Hearth'
-)
-ON DUPLICATE KEY UPDATE name=name, image_url=VALUES(image_url);
+);
 
 -- Seed Product Images (Product -> Product Images -> Gallery)
-INSERT INTO product_images (id, product_id, image_url, alt_text, display_order, is_primary)
+INSERT IGNORE INTO product_images (id, product_id, image_url, alt_text, display_order, is_primary)
 VALUES
 -- Product 1: Floral Garden
 (1, 1, '/products/floral-garden.jpg', 'Amber Rose Floral Garden Jar Candle - Main View', 1, TRUE),
@@ -127,16 +124,14 @@ VALUES
 
 -- Product 7: Wooden Dough Bowl
 (15, 7, '/products/wooden-dough-bowl.jpg', 'Carved Wooden Dough Bowl 3-Wick Candle - Main View', 1, TRUE),
-(16, 7, '/products/natural-spice.jpg', 'Solid Wood Grain & Botanical Potpourri Detail', 2, FALSE)
-ON DUPLICATE KEY UPDATE image_url=VALUES(image_url), display_order=VALUES(display_order);
+(16, 7, '/products/natural-spice.jpg', 'Solid Wood Grain & Botanical Potpourri Detail', 2, FALSE);
 
 -- Seed Initial Verified Reviews
-INSERT INTO reviews (id, product_id, author_name, location, rating, title, comment, verified)
+INSERT IGNORE INTO reviews (id, product_id, author_name, location, rating, title, comment, verified)
 VALUES
 (1, 1, 'Ananya Sharma', 'Mumbai, MH', 5, 'Breathtaking 3D Roses & Scent', 'The hand-sculpted roses are even more gorgeous in person. The fragrance filled my entire living room within 15 minutes of lighting. Truly artisanal!', TRUE),
 (2, 1, 'Rohan Mehta', 'Bengaluru, KA', 5, 'Perfect Diwali & Housewarming Gift', 'Purchased this for a friend’s housewarming. The packaging was immaculate, and the bamboo lid keeps the scent intact when unlit.', TRUE),
 (3, 2, 'Kavita Nair', 'Pune, MH', 5, 'Authentic Coconut Bowl Aesthetic', 'Love that this is made in real reclaimed coconut. The crackling wooden wick sounds like a tiny cozy fireplace. Zero soot!', TRUE),
 (4, 3, 'Dr. Aris Thorne', 'Delhi, DL', 5, 'Incredible Zen Aura in My Studio', 'The details on the Buddha face and drapery are extraordinary. It creates an instantly meditative atmosphere in my clinic.', TRUE),
-(5, 6, 'Sneha Patel', 'Ahmedabad, GJ', 5, 'The Evil Eye Charm is Real Glass!', 'The packaging is royal luxury! The glass nazar talisman looks stunning hanging by my entryway. Will definitely order again.', TRUE)
-ON DUPLICATE KEY UPDATE title=title;
+(5, 6, 'Sneha Patel', 'Ahmedabad, GJ', 5, 'The Evil Eye Charm is Real Glass!', 'The packaging is royal luxury! The glass nazar talisman looks stunning hanging by my entryway. Will definitely order again.', TRUE);
 
