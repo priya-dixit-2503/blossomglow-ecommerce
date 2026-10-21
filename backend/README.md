@@ -1,11 +1,11 @@
-# BlossomGlow Candle Creations - Java 21 & Spring Boot Backend
+# BlossomGlow Candle Creations - Spring Boot Backend
 
-Production REST API backend for BlossomGlow Candle Creations, built with **Java 21**, **Spring Boot 3.3.4**, **Spring Data JPA**, **MySQL**, **Spring Security with JWT**, **Swagger / OpenAPI 3**, and **Bean Validation**.
+Production REST API backend for BlossomGlow Candle Creations, built with **Java 17 / 21+**, **Spring Boot 3.3.4**, **Spring Data JPA**, **MySQL**, **Spring Security with JWT**, **Swagger / OpenAPI 3**, and **Bean Validation**.
 
 ---
 
 ## 🛠️ Technology Stack
-- **Java**: Version 21 (Virtual Threads enabled for high concurrency)
+- **Java**: Java 17 LTS (baseline compatibility, also fully supports Java 21+)
 - **Framework**: Spring Boot 3.3.4 (Spring Web, Spring Security, Spring Data JPA, Bean Validation)
 - **Database**: MySQL 8.0+
 - **Build Tool**: Apache Maven 3.9+
