@@ -2,10 +2,11 @@ import axios, { AxiosInstance } from 'axios';
 import { MOCK_PRODUCTS, MOCK_REVIEWS } from '../data/mockProducts';
 import { Product, Review, Order, CustomerOrderInfo, CartItem, OrderStatus, ContactMessage, UserProfile, AuthResponse, FragranceFamily, VesselColor, WickType, CandleSize } from '../types';
 import { normalizeProduct } from '../utils/productNormalizer';
+import { PRODUCT_ASSETS } from '../assets/products';
 
 const ORDERS_STORAGE_KEY = 'auradecor_orders_v3';
 const WISHLIST_STORAGE_KEY = 'auradecor_wishlist_v3';
-const PRODUCTS_STORAGE_KEY = 'blossomglow_artisan_catalog_v2026_18photos';
+const PRODUCTS_STORAGE_KEY = 'blossomglow_artisan_catalog_v2026_local_images_v4';
 const CONTACT_STORAGE_KEY = 'auradecor_contact_messages_v3';
 const REVIEWS_STORAGE_KEY = 'auradecor_reviews_v3';
 const CART_STORAGE_KEY = 'auradecor_cart_v3';
@@ -288,46 +289,68 @@ export class CandleApiService {
   // PRODUCTS & ARTISAN INVENTORY
   // =========================================================================
 
+  private static inMemoryProducts: Product[] | null = null;
+
   static getStoredProducts(): Product[] {
+    if (this.inMemoryProducts && this.inMemoryProducts.length > 0) {
+      return this.inMemoryProducts;
+    }
+
     try {
-      // Purge legacy storage keys that held outdated image references
+      // Purge legacy storage keys that held outdated image references or stale models
+      localStorage.removeItem('blossomglow_artisan_catalog_v2026_18photos');
       localStorage.removeItem('auradecor_products_v1');
       localStorage.removeItem('auradecor_products_v2');
       localStorage.removeItem('auradecor_products_v3');
+      localStorage.removeItem('blossomglow_products_v1');
 
       const stored = localStorage.getItem(PRODUCTS_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length >= MOCK_PRODUCTS.length) {
-          const sanitized = parsed.map(normalizeProduct);
-          // Ensure all default MOCK_PRODUCTS exist in the active catalog
-          for (const mock of MOCK_PRODUCTS) {
-            const cleanMockId = mock.id.toLowerCase().replace(/^bg-/, '');
-            const exists = sanitized.some(
-              (p) =>
-                p.id.toLowerCase() === mock.id.toLowerCase() ||
-                p.id.toLowerCase().replace(/^bg-/, '') === cleanMockId ||
-                p.name.toLowerCase().trim() === mock.name.toLowerCase().trim()
-            );
-            if (!exists) {
-              sanitized.push(normalizeProduct(mock));
-            }
-          }
-          this.saveStoredProducts(sanitized);
-          return sanitized;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const normalized = parsed.map(normalizeProduct);
+          this.inMemoryProducts = normalized;
+          return normalized;
         }
       }
     } catch {
       // ignore
     }
+
     const defaultList = MOCK_PRODUCTS.map(normalizeProduct);
-    localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(defaultList));
+    this.inMemoryProducts = defaultList;
+    try {
+      localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(defaultList));
+    } catch {
+      // ignore
+    }
     return defaultList;
   }
 
   static saveStoredProducts(products: Product[]): void {
+    const sanitized = products.map(normalizeProduct);
+    this.inMemoryProducts = sanitized;
+
     try {
-      localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
+      localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(sanitized));
+    } catch (e: any) {
+      console.warn('BlossomGlow: LocalStorage save warning (likely quota exceeded with large image)', e);
+      try {
+        // If quota exceeded, save essential product metadata
+        const lightweight = sanitized.map((p) => {
+          if (p.image && p.image.length > 50000) {
+            return { ...p, image: p.image.slice(0, 1000) };
+          }
+          return p;
+        });
+        localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(lightweight));
+      } catch {
+        // inMemoryProducts retains full data
+      }
+    }
+
+    try {
+      window.dispatchEvent(new CustomEvent('blossomglow:products-updated', { detail: sanitized }));
     } catch {
       // ignore
     }
@@ -342,40 +365,40 @@ export class CandleApiService {
     inStockOnly?: boolean;
     sortBy?: 'featured' | 'newest' | 'price-asc' | 'price-desc' | 'rating';
   }): Promise<Product[]> {
-    // 1. Attempt live Spring Boot REST API
-    try {
-      const response = await axiosClient.get<any[]>('/products', {
-        params: {
-          category: params?.category && params.category !== 'All Creations' && params.category !== 'All' ? params.category : undefined,
-          fragranceFamily: params?.fragranceFamily && params.fragranceFamily !== 'All' ? params.fragranceFamily : undefined,
-          search: params?.search || undefined,
-        },
-      });
-      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
-        this.isBackendLive = true;
-        // Normalize backend DTO items (ensures image, galleryImages, category, types are solid)
-        let apiResults = response.data.map(normalizeProduct);
+    // 1. Attempt live Spring Boot REST API only if confirmed live
+    if (this.isBackendLive === true) {
+      try {
+        const response = await axiosClient.get<any[]>('/products', {
+          params: {
+            category: params?.category && params.category !== 'All Creations' && params.category !== 'All' ? params.category : undefined,
+            fragranceFamily: params?.fragranceFamily && params.fragranceFamily !== 'All' ? params.fragranceFamily : undefined,
+            search: params?.search || undefined,
+          },
+        });
+        if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+          let apiResults = response.data.map(normalizeProduct);
 
-        // Apply client filters if backend returned full set
-        if (params?.minPrice !== undefined) {
-          apiResults = apiResults.filter((p) => p.price >= params.minPrice!);
+          // Apply client filters if backend returned full set
+          if (params?.minPrice !== undefined) {
+            apiResults = apiResults.filter((p) => p.price >= params.minPrice!);
+          }
+          if (params?.maxPrice !== undefined) {
+            apiResults = apiResults.filter((p) => p.price <= params.maxPrice!);
+          }
+          if (params?.inStockOnly) {
+            apiResults = apiResults.filter((p) => p.inStock);
+          }
+          if (params?.sortBy) {
+            if (params.sortBy === 'price-asc') apiResults.sort((a, b) => a.price - b.price);
+            else if (params.sortBy === 'price-desc') apiResults.sort((a, b) => b.price - a.price);
+            else if (params.sortBy === 'rating') apiResults.sort((a, b) => b.rating - a.rating);
+            else if (params.sortBy === 'newest') apiResults.sort((a, b) => (b.isNewArrival ? 1 : 0) - (a.isNewArrival ? 1 : 0));
+          }
+          return apiResults;
         }
-        if (params?.maxPrice !== undefined) {
-          apiResults = apiResults.filter((p) => p.price <= params.maxPrice!);
-        }
-        if (params?.inStockOnly) {
-          apiResults = apiResults.filter((p) => p.inStock);
-        }
-        if (params?.sortBy) {
-          if (params.sortBy === 'price-asc') apiResults.sort((a, b) => a.price - b.price);
-          else if (params.sortBy === 'price-desc') apiResults.sort((a, b) => b.price - a.price);
-          else if (params.sortBy === 'rating') apiResults.sort((a, b) => b.rating - a.rating);
-          else if (params.sortBy === 'newest') apiResults.sort((a, b) => (b.isNewArrival ? 1 : 0) - (a.isNewArrival ? 1 : 0));
-        }
-        return apiResults;
+      } catch {
+        this.isBackendLive = false;
       }
-    } catch {
-      this.isBackendLive = false;
     }
 
     // 2. Client-side local persistent fallback
@@ -1337,10 +1360,8 @@ export class CandleApiService {
           this.saveStoredWishlist(ids);
           return ids;
         }
-      } catch (err: any) {
-        if (err.response) {
-          throw new Error(err.response?.data?.message || 'Failed to fetch saved fragrances from server');
-        }
+      } catch {
+        this.isBackendLive = false;
       }
     }
 
@@ -1366,20 +1387,23 @@ export class CandleApiService {
 
   /**
    * Adds product to wishlist via POST /api/wishlist/{productId}
-   * For logged-in users, executes via Spring Boot API directly without localStorage logic
    */
   static async addToWishlist(productId: string): Promise<string[]> {
     if (this.isUserLoggedIn()) {
-      const response = await axiosClient.post<any>(`/wishlist/${productId}`);
-      this.isBackendLive = true;
-      const items = Array.isArray(response.data)
-        ? response.data
-        : response.data?.productIds || [];
-      const ids: string[] = items.map((item: any) =>
-        typeof item === 'string' ? item : String(item.productId || item.id)
-      );
-      this.saveStoredWishlist(ids);
-      return ids;
+      try {
+        const response = await axiosClient.post<any>(`/wishlist/${productId}`);
+        this.isBackendLive = true;
+        const items = Array.isArray(response.data)
+          ? response.data
+          : response.data?.productIds || [];
+        const ids: string[] = items.map((item: any) =>
+          typeof item === 'string' ? item : String(item.productId || item.id)
+        );
+        this.saveStoredWishlist(ids);
+        return ids;
+      } catch {
+        this.isBackendLive = false;
+      }
     }
 
     const list = this.getStoredWishlist();
@@ -1399,20 +1423,23 @@ export class CandleApiService {
 
   /**
    * Removes product from wishlist via DELETE /api/wishlist/{productId}
-   * For logged-in users, executes via Spring Boot API directly
    */
   static async removeFromWishlist(productId: string): Promise<string[]> {
     if (this.isUserLoggedIn()) {
-      const response = await axiosClient.delete<any>(`/wishlist/${productId}`);
-      this.isBackendLive = true;
-      const items = Array.isArray(response.data)
-        ? response.data
-        : response.data?.productIds || [];
-      const ids: string[] = items.map((item: any) =>
-        typeof item === 'string' ? item : String(item.productId || item.id)
-      );
-      this.saveStoredWishlist(ids);
-      return ids;
+      try {
+        const response = await axiosClient.delete<any>(`/wishlist/${productId}`);
+        this.isBackendLive = true;
+        const items = Array.isArray(response.data)
+          ? response.data
+          : response.data?.productIds || [];
+        const ids: string[] = items.map((item: any) =>
+          typeof item === 'string' ? item : String(item.productId || item.id)
+        );
+        this.saveStoredWishlist(ids);
+        return ids;
+      } catch {
+        this.isBackendLive = false;
+      }
     }
 
     const list = this.getStoredWishlist().filter((id) => id !== productId);
@@ -1429,20 +1456,23 @@ export class CandleApiService {
 
   /**
    * Toggles product in wishlist via POST /api/wishlist/toggle/{productId}
-   * For logged-in users, executes via Spring Boot API directly
    */
   static async toggleWishlist(productId: string, explicitList?: string[]): Promise<string[]> {
     if (this.isUserLoggedIn()) {
-      const response = await axiosClient.post<any>(`/wishlist/toggle/${productId}`);
-      this.isBackendLive = true;
-      const items = Array.isArray(response.data)
-        ? response.data
-        : response.data?.productIds || [];
-      const ids: string[] = items.map((item: any) =>
-        typeof item === 'string' ? item : String(item.productId || item.id)
-      );
-      this.saveStoredWishlist(ids);
-      return ids;
+      try {
+        const response = await axiosClient.post<any>(`/wishlist/toggle/${productId}`);
+        this.isBackendLive = true;
+        const items = Array.isArray(response.data)
+          ? response.data
+          : response.data?.productIds || [];
+        const ids: string[] = items.map((item: any) =>
+          typeof item === 'string' ? item : String(item.productId || item.id)
+        );
+        this.saveStoredWishlist(ids);
+        return ids;
+      } catch {
+        this.isBackendLive = false;
+      }
     }
 
     let updated: string[];
@@ -1466,12 +1496,15 @@ export class CandleApiService {
 
   /**
    * Clears entire wishlist via DELETE /api/wishlist
-   * For logged-in users, executes via Spring Boot API directly
    */
   static async clearWishlist(): Promise<void> {
     if (this.isUserLoggedIn()) {
-      await axiosClient.delete('/wishlist');
-      this.isBackendLive = true;
+      try {
+        await axiosClient.delete('/wishlist');
+        this.isBackendLive = true;
+      } catch {
+        this.isBackendLive = false;
+      }
       this.saveStoredWishlist([]);
       return;
     }
@@ -1512,32 +1545,41 @@ export class CandleApiService {
   // =========================================================================
 
   static async createProduct(productData: Partial<Product>): Promise<Product> {
-    try {
-      const response = await axiosClient.post<Product>('/products', productData);
-      if (response.data) {
-        this.isBackendLive = true;
-        return response.data;
+    if (this.isBackendLive === true) {
+      try {
+        const response = await axiosClient.post<Product>('/products', productData);
+        if (response.data) {
+          const normalized = normalizeProduct(response.data);
+          const current = this.getStoredProducts();
+          current.unshift(normalized);
+          this.saveStoredProducts(current);
+          return normalized;
+        }
+      } catch {
+        this.isBackendLive = false;
       }
-    } catch {
-      // fallback
     }
 
     const current = this.getStoredProducts();
-    const newProduct: Product = {
-      id: `bg-${Date.now()}`,
-      name: productData.name || 'Artisanal Candle Creation',
-      tagline: productData.tagline || 'Hand-poured pure soy candle',
+    const uniqueCustomId = productData.id || `bg-custom-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const newProduct: Product = normalizeProduct({
+      ...productData,
+      id: uniqueCustomId,
+      name: productData.name?.trim() || 'Artisanal Candle Creation',
+      tagline: productData.tagline?.trim() || 'Hand-poured pure soy candle',
       category: productData.category || 'Decorative Candles',
       fragranceFamily: productData.fragranceFamily || 'Floral',
       price: Number(productData.price) || 499,
       originalPrice: productData.originalPrice || Math.round((Number(productData.price) || 499) * 1.25),
       rating: 5.0,
       reviewsCount: 1,
-      image: productData.image || '/src/assets/products/floral-garden.jpg',
-      galleryImages: productData.galleryImages || [productData.image || '/src/assets/products/floral-garden.jpg'],
-      burnTimeHours: productData.burnTimeHours || 40,
-      weightGrams: productData.weightGrams || 250,
-      scentIntensity: productData.scentIntensity || 4,
+      image: productData.image || PRODUCT_ASSETS.floralGarden,
+      galleryImages: productData.galleryImages && productData.galleryImages.length > 0
+        ? productData.galleryImages
+        : [productData.image || PRODUCT_ASSETS.floralGarden],
+      burnTimeHours: Number(productData.burnTimeHours) || 40,
+      weightGrams: Number(productData.weightGrams) || 250,
+      scentIntensity: Number(productData.scentIntensity) || 4,
       scentPyramid: productData.scentPyramid || {
         topNotes: ['Bergamot', 'Mandarin'],
         heartNotes: ['Jasmine Petals', 'Rose Water'],
@@ -1548,13 +1590,13 @@ export class CandleApiService {
       availableVessels: productData.availableVessels || ['Fluted Ivory', 'Matte Blush Cream'],
       availableWicks: productData.availableWicks || ['Organic Cotton Wick', 'Crackling Wood Wick'],
       inStock: productData.inStock ?? true,
-      stockQuantity: productData.stockQuantity || 30,
-      isBestSeller: productData.isBestSeller || false,
+      stockQuantity: Number(productData.stockQuantity) || 30,
+      isBestSeller: Boolean(productData.isBestSeller),
       isNewArrival: true,
-      seasonRelease: 'Atelier Release 2026',
+      seasonRelease: productData.seasonRelease || 'Atelier Release 2026',
       waxType: productData.waxType || '100% Organic Soy Wax',
       dimensions: productData.dimensions || '8cm x 9cm',
-    };
+    });
 
     current.unshift(newProduct);
     this.saveStoredProducts(current);
@@ -1562,32 +1604,75 @@ export class CandleApiService {
   }
 
   static async updateProduct(id: string, updates: Partial<Product>): Promise<Product | null> {
-    try {
-      const response = await axiosClient.put<Product>(`/products/${id}`, updates);
-      if (response.data) return response.data;
-    } catch {
-      // fallback
+    if (this.isBackendLive === true) {
+      try {
+        const response = await axiosClient.put<Product>(`/products/${id}`, updates);
+        if (response.data) {
+          const normalized = normalizeProduct(response.data);
+          const current = this.getStoredProducts();
+          const idx = current.findIndex(
+            (p) =>
+              String(p.id).toLowerCase() === String(id).toLowerCase() ||
+              String(p.id).toLowerCase().replace(/^bg-/, '') === String(id).toLowerCase().replace(/^bg-/, '')
+          );
+          if (idx !== -1) {
+            current[idx] = normalized;
+          } else {
+            current.unshift(normalized);
+          }
+          this.saveStoredProducts(current);
+          return normalized;
+        }
+      } catch {
+        this.isBackendLive = false;
+      }
     }
 
     const current = this.getStoredProducts();
-    const idx = current.findIndex((p) => p.id === id);
+    const cleanTargetId = String(id).toLowerCase().replace(/^bg-/, '');
+    const idx = current.findIndex(
+      (p) =>
+        String(p.id).toLowerCase() === String(id).toLowerCase() ||
+        String(p.id).toLowerCase().replace(/^bg-/, '') === cleanTargetId ||
+        (updates.name && p.name.toLowerCase().trim() === updates.name.toLowerCase().trim())
+    );
+
     if (idx !== -1) {
-      current[idx] = { ...current[idx], ...updates };
+      current[idx] = normalizeProduct({
+        ...current[idx],
+        ...updates,
+        id: current[idx].id, // preserve authoritative id
+      });
       this.saveStoredProducts(current);
       return current[idx];
+    } else {
+      // If product was not previously in list, create and append it
+      const created = normalizeProduct({
+        id,
+        ...updates,
+      });
+      current.unshift(created);
+      this.saveStoredProducts(current);
+      return created;
     }
-    return null;
   }
 
   static async deleteProduct(id: string): Promise<boolean> {
-    try {
-      await axiosClient.delete(`/products/${id}`);
-    } catch {
-      // fallback
+    if (this.isBackendLive === true) {
+      try {
+        await axiosClient.delete(`/products/${id}`);
+      } catch {
+        this.isBackendLive = false;
+      }
     }
 
+    const cleanTargetId = String(id).toLowerCase().replace(/^bg-/, '');
     const current = this.getStoredProducts();
-    const filtered = current.filter((p) => p.id !== id);
+    const filtered = current.filter(
+      (p) =>
+        String(p.id).toLowerCase() !== String(id).toLowerCase() &&
+        String(p.id).toLowerCase().replace(/^bg-/, '') !== cleanTargetId
+    );
     this.saveStoredProducts(filtered);
     return true;
   }

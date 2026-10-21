@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Flame } from 'lucide-react';
+import { PRODUCT_ASSETS, WHATSAPP_IMAGE_MAP } from '../assets/products';
+import { resolveImage } from '../utils/productNormalizer';
 
 interface ProductImageCarouselProps {
   images: string[];
@@ -23,7 +25,7 @@ export const ProductImageCarousel: React.FC<ProductImageCarouselProps> = ({
   // Ensure we always have only valid, non-empty string image URLs
   const validImages = React.useMemo(() => {
     const list = (images || []).filter((img) => typeof img === 'string' && img.trim().length > 0);
-    return list.length > 0 ? list : ['/products/floral-garden.jpg'];
+    return list.length > 0 ? list : [PRODUCT_ASSETS.floralGarden];
   }, [images]);
 
   const hasMultiple = validImages.length > 1;
@@ -139,20 +141,47 @@ export const ProductImageCarousel: React.FC<ProductImageCarouselProps> = ({
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>, imgSrc: string) => {
     const target = e.currentTarget;
-    // Attempt fallback from /src/assets/products/ to /products/
-    if (target.src.includes('/src/assets/products/')) {
-      const filename = target.src.split('/').pop()?.split('?')[0];
-      if (filename) {
-        target.src = `/products/${filename}`;
+
+    // Prevent endless recursion
+    if (target.dataset.fallbackStage === 'final') {
+      setFailedImages((prev) => ({ ...prev, [imgSrc]: true }));
+      return;
+    }
+
+    if (!target.dataset.fallbackStage) {
+      target.dataset.fallbackStage = 'stage1';
+
+      // 1. Direct resolve by alt/product name
+      const byName = resolveImage(undefined, undefined, alt);
+      if (byName && byName !== target.src) {
+        target.src = byName;
+        return;
+      }
+
+      // 2. Try WhatsApp map
+      try {
+        const decoded = decodeURIComponent(target.src);
+        for (const [waName, asset] of Object.entries(WHATSAPP_IMAGE_MAP)) {
+          if (decoded.includes(waName)) {
+            target.src = asset;
+            return;
+          }
+        }
+      } catch {
+        // ignore decode failure
+      }
+
+      // 3. Try clean public path if filename matches
+      const fn = target.src.split('/').pop()?.split('?')[0] || '';
+      if (fn && !target.src.includes('/products/')) {
+        target.src = `/products/${fn}`;
         return;
       }
     }
-    // Attempt fallback to default floral-garden if another path broke
-    if (!target.src.includes('floral-garden.jpg')) {
-      target.src = '/products/floral-garden.jpg';
-      return;
-    }
-    setFailedImages((prev) => ({ ...prev, [imgSrc]: true }));
+
+    // Final fallback
+    target.dataset.fallbackStage = 'final';
+    target.src = PRODUCT_ASSETS.floralGarden;
   };
 
   return (

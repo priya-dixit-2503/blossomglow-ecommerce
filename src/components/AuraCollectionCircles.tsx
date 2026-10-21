@@ -115,7 +115,7 @@ export const AuraCollectionCircles: React.FC<AuraCollectionCirclesProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center justify-start sm:justify-center gap-4 sm:gap-6 md:gap-8 overflow-x-auto pb-4 pt-2 no-scrollbar snap-x">
+        <div className="w-full max-w-full flex items-center justify-start sm:justify-center gap-3.5 sm:gap-6 md:gap-8 overflow-x-auto pb-4 pt-2 no-scrollbar snap-x touch-pan-x -mx-4 px-4 sm:mx-0 sm:px-0">
           {COLLECTIONS.map((col) => {
             const isActive =
               (col.categoryFilter === 'All Creations' && selectedCategory === 'All Creations') ||
@@ -125,10 +125,10 @@ export const AuraCollectionCircles: React.FC<AuraCollectionCirclesProps> = ({
               <button
                 key={col.id}
                 onClick={() => onSelectCategory(col.categoryFilter)}
-                className="group flex flex-col items-center shrink-0 snap-center transition-all focus:outline-none"
+                className="group flex flex-col items-center shrink-0 snap-center transition-all focus:outline-none cursor-pointer"
               >
                 <div
-                  className={`w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full p-1 transition-all duration-300 ${
+                  className={`w-18 h-18 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full p-0.5 sm:p-1 transition-all duration-300 ${
                     isActive
                       ? 'ring-2 ring-amber-600 ring-offset-2 ring-offset-[#FAF8F5] scale-105 shadow-md'
                       : 'hover:ring-2 hover:ring-amber-400 hover:ring-offset-2 hover:ring-offset-[#FAF8F5] hover:scale-105'

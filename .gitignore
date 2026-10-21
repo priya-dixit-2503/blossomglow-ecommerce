@@ -6,3 +6,9 @@ coverage/
 *.log
 .env*
 !.env.example
+.aistudio/
+.dev.*
+backend/target/
+target/
+*.class
+*.jar

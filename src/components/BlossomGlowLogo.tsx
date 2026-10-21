@@ -20,17 +20,17 @@ export const BlossomGlowLogo: React.FC<BlossomGlowLogoProps> = ({
 
   // Size mapping for the circular medallion
   const sizeClasses = {
-    sm: 'w-10 h-10 sm:w-11 sm:h-11',
-    md: 'w-12 h-12 sm:w-13 sm:h-13 md:w-14 md:h-14',
-    lg: 'w-16 h-16 sm:w-18 sm:h-18',
-    xl: 'w-24 h-24 sm:w-28 sm:h-28',
+    sm: 'w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11',
+    md: 'w-9 h-9 sm:w-12 sm:h-12 md:w-14 md:h-14',
+    lg: 'w-12 h-12 sm:w-16 sm:h-16 md:w-18 md:h-18',
+    xl: 'w-18 h-18 sm:w-24 sm:h-24 md:w-28 md:h-28',
   };
 
   const textSizes = {
-    sm: { title: 'text-xl sm:text-2xl', sub: 'text-[8.5px] tracking-[0.25em]' },
-    md: { title: 'text-2xl sm:text-[27px] md:text-[29px]', sub: 'text-[9.5px] sm:text-[10px] md:text-[10.5px] tracking-[0.3em]' },
-    lg: { title: 'text-3xl sm:text-4xl', sub: 'text-[11px] sm:text-xs tracking-[0.32em]' },
-    xl: { title: 'text-4xl sm:text-5xl', sub: 'text-xs sm:text-sm tracking-[0.34em]' },
+    sm: { title: 'text-lg sm:text-xl md:text-2xl', sub: 'text-[7.5px] sm:text-[8.5px] tracking-[0.2em] sm:tracking-[0.25em]' },
+    md: { title: 'text-lg sm:text-[24px] md:text-[28px]', sub: 'text-[8px] sm:text-[9.5px] md:text-[10px] tracking-[0.2em] sm:tracking-[0.3em]' },
+    lg: { title: 'text-2xl sm:text-3xl md:text-4xl', sub: 'text-[9.5px] sm:text-[11px] tracking-[0.24em] sm:tracking-[0.32em]' },
+    xl: { title: 'text-3xl sm:text-4xl md:text-5xl', sub: 'text-xs sm:text-sm tracking-[0.28em] sm:tracking-[0.34em]' },
   };
 
   return (

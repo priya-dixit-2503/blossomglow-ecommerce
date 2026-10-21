@@ -78,14 +78,14 @@ export const FavoritesShowcaseSection: React.FC<FavoritesShowcaseSectionProps> =
             Discover the creations crafted for a clean, smokeless burn and infused with pure essential oils to awaken your senses.
           </p>
 
-          {/* Tab buttons */}
-          <div className="pt-4 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+          {/* Tab buttons - Horizontally scrollable on mobile */}
+          <div className="pt-4 flex items-center justify-start sm:justify-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
             <button
               onClick={() => {
                 setActiveTab('best-sellers');
                 setShowAllInTab(false);
               }}
-              className={`px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
+              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[11px] sm:text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer shrink-0 ${
                 activeTab === 'best-sellers'
                   ? 'bg-[#161311] text-amber-300 shadow-md'
                   : 'bg-white text-stone-600 hover:bg-stone-100 hover:text-stone-900 border border-stone-200'
@@ -98,7 +98,7 @@ export const FavoritesShowcaseSection: React.FC<FavoritesShowcaseSectionProps> =
                 setActiveTab('all');
                 setShowAllInTab(false);
               }}
-              className={`px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
+              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[11px] sm:text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer shrink-0 ${
                 activeTab === 'all'
                   ? 'bg-[#161311] text-amber-300 shadow-md'
                   : 'bg-white text-stone-600 hover:bg-stone-100 hover:text-stone-900 border border-stone-200'
@@ -111,7 +111,7 @@ export const FavoritesShowcaseSection: React.FC<FavoritesShowcaseSectionProps> =
                 setActiveTab('new-arrivals');
                 setShowAllInTab(false);
               }}
-              className={`px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
+              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[11px] sm:text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer shrink-0 ${
                 activeTab === 'new-arrivals'
                   ? 'bg-[#161311] text-amber-300 shadow-md'
                   : 'bg-white text-stone-600 hover:bg-stone-100 hover:text-stone-900 border border-stone-200'
@@ -124,7 +124,7 @@ export const FavoritesShowcaseSection: React.FC<FavoritesShowcaseSectionProps> =
                 setActiveTab('pillars-jars');
                 setShowAllInTab(false);
               }}
-              className={`px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
+              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[11px] sm:text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer shrink-0 ${
                 activeTab === 'pillars-jars'
                   ? 'bg-[#161311] text-amber-300 shadow-md'
                   : 'bg-white text-stone-600 hover:bg-stone-100 hover:text-stone-900 border border-stone-200'
@@ -137,7 +137,7 @@ export const FavoritesShowcaseSection: React.FC<FavoritesShowcaseSectionProps> =
                 setActiveTab('floating-festive');
                 setShowAllInTab(false);
               }}
-              className={`px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
+              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[11px] sm:text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer shrink-0 ${
                 activeTab === 'floating-festive'
                   ? 'bg-[#161311] text-amber-300 shadow-md'
                   : 'bg-white text-stone-600 hover:bg-stone-100 hover:text-stone-900 border border-stone-200'
@@ -150,7 +150,7 @@ export const FavoritesShowcaseSection: React.FC<FavoritesShowcaseSectionProps> =
                 setActiveTab('gift-hampers');
                 setShowAllInTab(false);
               }}
-              className={`px-5 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
+              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[11px] sm:text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer shrink-0 ${
                 activeTab === 'gift-hampers'
                   ? 'bg-[#161311] text-amber-300 shadow-md'
                   : 'bg-white text-stone-600 hover:bg-stone-100 hover:text-stone-900 border border-stone-200'
@@ -162,7 +162,7 @@ export const FavoritesShowcaseSection: React.FC<FavoritesShowcaseSectionProps> =
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
           {finalProducts.map((product) => (
             <ProductCard
               key={product.id}

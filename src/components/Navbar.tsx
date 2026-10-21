@@ -90,6 +90,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onNavigateToGifting,
 }) => {
   const [isCollectionsOpen, setIsCollectionsOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [mobileCollectionsExpanded, setMobileCollectionsExpanded] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [activeAnnouncementIdx, setActiveAnnouncementIdx] = useState(0);
   const [isBackendConnected, setIsBackendConnected] = useState<boolean | null>(null);
@@ -152,6 +154,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const closeAllMenus = () => {
     setIsCollectionsOpen(false);
     setUserDropdownOpen(false);
+    setIsMobileMenuOpen(false);
   };
 
   const currentAnnouncement =
@@ -331,7 +334,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                 <span className="text-stone-600 hidden sm:inline">•</span>
 
-                <span className="text-stone-200 font-light tracking-wide text-[11px] sm:text-xs max-w-[280px] sm:max-w-none truncate sm:overflow-visible">
+                <span className="text-stone-200 font-light tracking-wide text-[10.5px] sm:text-xs max-w-[200px] xs:max-w-[260px] sm:max-w-none truncate sm:overflow-visible">
                   {currentAnnouncement.text}
                 </span>
 
@@ -410,7 +413,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       >
         <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-amber-500/25 to-transparent pointer-events-none" />
 
-        <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-10 h-20 sm:h-[88px] flex items-center justify-between">
+        <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-10 h-16 sm:h-20 md:h-[88px] flex items-center justify-between">
           {/* LEFT: Official Brand Logo */}
           <div className="flex items-center shrink-0">
             <button
@@ -425,8 +428,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </div>
 
-          {/* CENTER: PRIMARY NAVIGATION (Home, Collections ∨, New Arrivals) */}
-          <nav className="flex items-center gap-4 sm:gap-7 md:gap-9">
+          {/* CENTER: PRIMARY NAVIGATION (Home, Collections ∨, New Arrivals) - Hidden on Mobile */}
+          <nav className="hidden md:flex items-center gap-4 sm:gap-7 md:gap-9">
             {/* 1. Home */}
             <button
               onClick={() => {
@@ -491,7 +494,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {onOpenScentQuiz && (
               <button
                 onClick={onOpenScentQuiz}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-amber-600/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-900 transition-all text-[11px] font-semibold tracking-wider uppercase cursor-pointer hover:shadow-2xs active:scale-95 whitespace-nowrap shrink-0"
+                className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-amber-600/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-900 transition-all text-[11px] font-semibold tracking-wider uppercase cursor-pointer hover:shadow-2xs active:scale-95 whitespace-nowrap shrink-0"
                 title="Discover your personalized botanical candle aura"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-700 shrink-0" />
@@ -502,20 +505,20 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Wishlist Button with Counter */}
             <button
               onClick={onOpenWishlist}
-              className="p-2.5 text-stone-700 hover:text-stone-950 hover:bg-stone-200/50 rounded-full transition-colors relative cursor-pointer shrink-0"
+              className="p-2 sm:p-2.5 text-stone-700 hover:text-stone-950 hover:bg-stone-200/50 rounded-full transition-colors relative cursor-pointer shrink-0"
               aria-label="Wishlist"
               title="Saved Favorites"
             >
               <Heart className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
               {wishlistCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-rose-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center shadow-xs">
+                <span className="absolute top-1 sm:top-1.5 right-1 sm:right-1.5 w-4 h-4 bg-rose-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center shadow-xs">
                   {wishlistCount}
                 </span>
               )}
             </button>
 
-            {/* User Account / Sign In Dropdown */}
-            <div className="relative shrink-0" ref={userDropdownRef}>
+            {/* User Account / Sign In Dropdown - Hidden on mobile, accessible in mobile drawer */}
+            <div className="hidden sm:block relative shrink-0" ref={userDropdownRef}>
               {currentUser ? (
                 <div>
                   <button
@@ -674,11 +677,24 @@ export const Navbar: React.FC<NavbarProps> = ({
                 Bag
               </span>
             </button>
+
+            {/* Mobile Navigation Drawer Toggle Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 text-stone-800 hover:text-stone-950 hover:bg-stone-200/60 rounded-full transition-colors cursor-pointer shrink-0 ml-0.5 focus:outline-none"
+              aria-label={isMobileMenuOpen ? 'Close Navigation Menu' : 'Open Navigation Menu'}
+            >
+              {isMobileMenuOpen ? (
+                <X className="w-5 h-5 text-stone-900" />
+              ) : (
+                <Menu className="w-5 h-5 text-stone-900" />
+              )}
+            </button>
           </div>
         </div>
       </div>
 
-      {/* 3. COLLECTIONS DROPDOWN MENU */}
+      {/* 3. COLLECTIONS DROPDOWN MENU (Desktop) */}
       <CollectionsDropdownMenu
         isOpen={isCollectionsOpen}
         onClose={() => setIsCollectionsOpen(false)}
@@ -696,6 +712,348 @@ export const Navbar: React.FC<NavbarProps> = ({
         onNavigateToGifting={onNavigateToGifting}
         isBackendConnected={isBackendConnected}
       />
+
+      {/* 4. MOBILE SLIDE-OVER NAVIGATION DRAWER */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 md:hidden overflow-hidden">
+          {/* Backdrop overlay */}
+          <div
+            className="fixed inset-0 bg-stone-950/60 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in"
+            onClick={() => setIsMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
+
+          {/* Slide-over Drawer Panel */}
+          <div className="fixed inset-y-0 right-0 max-w-[85vw] w-80 bg-[#FAF7F2] shadow-2xl flex flex-col justify-between overflow-y-auto z-10 animate-in slide-in-from-right duration-300">
+            {/* Drawer Header */}
+            <div className="p-4 border-b border-stone-200 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-20">
+              <button
+                onClick={() => {
+                  closeAllMenus();
+                  onNavigateToHome();
+                }}
+                className="text-left flex items-center"
+              >
+                <BlossomGlowLogo size="sm" showText={true} />
+              </button>
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2 text-stone-500 hover:text-stone-900 rounded-full hover:bg-stone-100 transition-colors"
+                aria-label="Close menu"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Drawer Body */}
+            <div className="p-4 space-y-6 flex-1 overflow-y-auto">
+              {/* Account Quick Status */}
+              <div className="p-3.5 rounded-2xl bg-white border border-stone-200/90 shadow-2xs">
+                {currentUser ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-[#29221C] text-amber-200 flex items-center justify-center font-bold text-xs shrink-0">
+                        {currentUser.fullName ? currentUser.fullName[0].toUpperCase() : 'U'}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-stone-900 truncate">{currentUser.fullName}</p>
+                        <p className="text-[10px] text-stone-500 truncate">{currentUser.email}</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-stone-100">
+                      <button
+                        onClick={() => {
+                          setIsMobileMenuOpen(false);
+                          if (onOpenAccount) onOpenAccount('profile');
+                        }}
+                        className="py-1.5 px-2 bg-stone-50 hover:bg-stone-100 text-stone-700 text-[11px] font-medium rounded-lg text-center cursor-pointer"
+                      >
+                        Profile
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsMobileMenuOpen(false);
+                          if (onOpenAccount) onOpenAccount('orders');
+                          else if (onOpenOrderHistory) onOpenOrderHistory();
+                        }}
+                        className="py-1.5 px-2 bg-stone-50 hover:bg-stone-100 text-stone-700 text-[11px] font-medium rounded-lg text-center cursor-pointer"
+                      >
+                        My Orders
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold text-stone-900">Welcome to Atelier</p>
+                      <p className="text-[10px] text-stone-500">Sign in for orders &amp; wishlist</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        if (onOpenAuth) onOpenAuth('login');
+                      }}
+                      className="px-3.5 py-1.5 rounded-full bg-[#1C1815] text-amber-200 text-xs font-medium cursor-pointer"
+                    >
+                      Sign In
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Main Navigation Links */}
+              <div className="space-y-1">
+                <button
+                  onClick={() => {
+                    closeAllMenus();
+                    onNavigateToHome();
+                  }}
+                  className="w-full text-left py-2.5 px-3 rounded-xl hover:bg-white text-stone-800 text-sm font-medium transition-colors cursor-pointer"
+                >
+                  Home
+                </button>
+
+                {/* Collections Accordion */}
+                <div>
+                  <button
+                    onClick={() => setMobileCollectionsExpanded(!mobileCollectionsExpanded)}
+                    className="w-full flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-white text-stone-800 text-sm font-medium transition-colors cursor-pointer"
+                  >
+                    <span>Collections</span>
+                    <ChevronDown
+                      className={`w-4 h-4 text-stone-500 transition-transform duration-200 ${
+                        mobileCollectionsExpanded ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+
+                  {mobileCollectionsExpanded && (
+                    <div className="pl-4 pr-1 py-1 space-y-1">
+                      <button
+                        onClick={() => {
+                          closeAllMenus();
+                          onNavigateToShop();
+                        }}
+                        className="w-full text-left py-2 px-3 rounded-lg bg-amber-500/10 text-amber-900 text-xs font-semibold cursor-pointer"
+                      >
+                        ✨ View All Collections
+                      </button>
+                      <button
+                        onClick={() => {
+                          closeAllMenus();
+                          onNavigateToShop('Pillar Candles');
+                        }}
+                        className="w-full text-left py-1.5 px-3 rounded-lg text-stone-600 hover:bg-white text-xs cursor-pointer"
+                      >
+                        🕯️ Scented Pillar Candles
+                      </button>
+                      <button
+                        onClick={() => {
+                          closeAllMenus();
+                          onNavigateToShop('Jar & Container Candles');
+                        }}
+                        className="w-full text-left py-1.5 px-3 rounded-lg text-stone-600 hover:bg-white text-xs cursor-pointer"
+                      >
+                        🏺 Amber Jar Soy Candles
+                      </button>
+                      <button
+                        onClick={() => {
+                          closeAllMenus();
+                          onNavigateToShop('Floating & Urli Sets');
+                        }}
+                        className="w-full text-left py-1.5 px-3 rounded-lg text-stone-600 hover:bg-white text-xs cursor-pointer"
+                      >
+                        🪷 Floating Flowers &amp; Urli Sets
+                      </button>
+                      <button
+                        onClick={() => {
+                          closeAllMenus();
+                          onNavigateToShop('Sculptural Candles');
+                        }}
+                        className="w-full text-left py-1.5 px-3 rounded-lg text-stone-600 hover:bg-white text-xs cursor-pointer"
+                      >
+                        🧘 Sculptural &amp; Buddha Candles
+                      </button>
+                      <button
+                        onClick={() => {
+                          closeAllMenus();
+                          onNavigateToShop('Botanical Bowls & Shells');
+                        }}
+                        className="w-full text-left py-1.5 px-3 rounded-lg text-stone-600 hover:bg-white text-xs cursor-pointer"
+                      >
+                        🪵 Carved Wooden Dough Bowls
+                      </button>
+                      <button
+                        onClick={() => {
+                          closeAllMenus();
+                          onNavigateToShop('Diffusers & Home Accents');
+                        }}
+                        className="w-full text-left py-1.5 px-3 rounded-lg text-stone-600 hover:bg-white text-xs cursor-pointer"
+                      >
+                        🏛️ Jesmonite Trays &amp; Clocks
+                      </button>
+                      <button
+                        onClick={() => {
+                          closeAllMenus();
+                          onNavigateToShop('Luxury Gift Hampers');
+                        }}
+                        className="w-full text-left py-1.5 px-3 rounded-lg text-stone-600 hover:bg-white text-xs cursor-pointer"
+                      >
+                        🎁 Luxury Gift Hampers
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => {
+                    closeAllMenus();
+                    if (onNavigateToNewArrivals) onNavigateToNewArrivals();
+                    else onNavigateToShop('All Creations');
+                  }}
+                  className="w-full text-left py-2.5 px-3 rounded-xl hover:bg-white text-stone-800 text-sm font-medium transition-colors cursor-pointer"
+                >
+                  New Arrivals
+                </button>
+
+                <button
+                  onClick={() => {
+                    closeAllMenus();
+                    onNavigateToGifting();
+                  }}
+                  className="w-full text-left py-2.5 px-3 rounded-xl hover:bg-white text-stone-800 text-sm font-medium transition-colors cursor-pointer"
+                >
+                  Gifting Concierge
+                </button>
+
+                <button
+                  onClick={() => {
+                    closeAllMenus();
+                    onNavigateToAbout();
+                  }}
+                  className="w-full text-left py-2.5 px-3 rounded-xl hover:bg-white text-stone-800 text-sm font-medium transition-colors cursor-pointer"
+                >
+                  About Atelier
+                </button>
+              </div>
+
+              {/* Special Features / Interactive Tools */}
+              <div className="pt-2 border-t border-stone-200/80 space-y-2">
+                <p className="text-[10px] font-mono uppercase tracking-widest text-stone-400 px-3">Interactive Experiences</p>
+
+                {onOpenScentQuiz && (
+                  <button
+                    onClick={() => {
+                      closeAllMenus();
+                      onOpenScentQuiz();
+                    }}
+                    className="w-full flex items-center gap-2.5 p-2.5 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-900 text-xs font-medium transition-colors cursor-pointer"
+                  >
+                    <Sparkles className="w-4 h-4 text-amber-700" />
+                    <span>60-Second Scent Quiz</span>
+                  </button>
+                )}
+
+                {onOpenCustomBlender && (
+                  <button
+                    onClick={() => {
+                      closeAllMenus();
+                      onOpenCustomBlender();
+                    }}
+                    className="w-full flex items-center gap-2.5 p-2.5 px-3 rounded-xl bg-white hover:bg-stone-100 text-stone-800 text-xs font-medium border border-stone-200/80 transition-colors cursor-pointer"
+                  >
+                    <Wand2 className="w-4 h-4 text-amber-800" />
+                    <span>Custom Candle Blender</span>
+                  </button>
+                )}
+
+                {onOpenGiftBuilder && (
+                  <button
+                    onClick={() => {
+                      closeAllMenus();
+                      onOpenGiftBuilder();
+                    }}
+                    className="w-full flex items-center gap-2.5 p-2.5 px-3 rounded-xl bg-white hover:bg-stone-100 text-stone-800 text-xs font-medium border border-stone-200/80 transition-colors cursor-pointer"
+                  >
+                    <Gift className="w-4 h-4 text-amber-800" />
+                    <span>Gift Hamper Builder</span>
+                  </button>
+                )}
+
+                {onOpenTracking && (
+                  <button
+                    onClick={() => {
+                      closeAllMenus();
+                      onOpenTracking();
+                    }}
+                    className="w-full flex items-center gap-2.5 p-2.5 px-3 rounded-xl bg-white hover:bg-stone-100 text-stone-800 text-xs font-medium border border-stone-200/80 transition-colors cursor-pointer"
+                  >
+                    <Package className="w-4 h-4 text-stone-600" />
+                    <span>Track Live Courier Order</span>
+                  </button>
+                )}
+
+                {onOpenCareGuide && (
+                  <button
+                    onClick={() => {
+                      closeAllMenus();
+                      onOpenCareGuide();
+                    }}
+                    className="w-full flex items-center gap-2.5 p-2.5 px-3 rounded-xl bg-white hover:bg-stone-100 text-stone-800 text-xs font-medium border border-stone-200/80 transition-colors cursor-pointer"
+                  >
+                    <BookOpen className="w-4 h-4 text-stone-600" />
+                    <span>Candle Care &amp; Burn Guide</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    closeAllMenus();
+                    onOpenContact();
+                  }}
+                  className="w-full flex items-center gap-2.5 p-2.5 px-3 rounded-xl bg-white hover:bg-stone-100 text-stone-800 text-xs font-medium border border-stone-200/80 transition-colors cursor-pointer"
+                >
+                  <PhoneCall className="w-4 h-4 text-stone-600" />
+                  <span>Concierge &amp; WhatsApp Support</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Drawer Footer */}
+            <div className="p-4 bg-[#F2EDE6] border-t border-stone-200 text-center space-y-2">
+              <div className="flex items-center justify-center gap-3 text-stone-600">
+                <a
+                  href="https://instagram.com/blossomglow.candles"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1.5 rounded-full hover:bg-stone-200 text-stone-700"
+                >
+                  <Instagram className="w-4 h-4" />
+                </a>
+                <a
+                  href="https://facebook.com/blossomglowcandles"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1.5 rounded-full hover:bg-stone-200 text-stone-700"
+                >
+                  <Facebook className="w-4 h-4" />
+                </a>
+                <a
+                  href="https://wa.me/919829012345"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1.5 rounded-full hover:bg-stone-200 text-stone-700"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                </a>
+              </div>
+              <p className="text-[10px] text-stone-500 font-mono">
+                100% Organic Soy Wax · Handcrafted in India
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

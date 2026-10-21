@@ -4,6 +4,7 @@ import { Product, VesselColor, WickType, CandleSize, Review } from '../types';
 import { ambientAudio } from '../utils/soundEffects';
 import { CandleApiService } from '../services/api';
 import { resolveImage } from '../utils/productNormalizer';
+import { PRODUCT_ASSETS } from '../assets/products';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -124,11 +125,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-stone-950/70 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-4xl bg-white dark:bg-stone-900 rounded-3xl shadow-2xl overflow-hidden my-auto border border-stone-200 dark:border-stone-800">
+      <div className="relative w-full max-w-4xl bg-white dark:bg-stone-900 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden my-auto border border-stone-200 dark:border-stone-800 max-h-[92vh] overflow-y-auto">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-20 p-2 rounded-full bg-white/90 dark:bg-stone-800/90 text-stone-700 dark:text-stone-300 hover:text-black dark:hover:text-white hover:bg-stone-100 transition-colors shadow-sm cursor-pointer"
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 p-2 rounded-full bg-white/90 dark:bg-stone-800/90 text-stone-700 dark:text-stone-300 hover:text-black dark:hover:text-white hover:bg-stone-100 transition-colors shadow-sm cursor-pointer"
           aria-label="Close modal"
         >
           <X className="w-5 h-5" />
@@ -136,7 +137,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2">
           {/* Left Column: Gallery & Burn Simulator */}
-          <div className="p-6 bg-[#F8F6F2] dark:bg-stone-800/60 flex flex-col justify-between border-b md:border-b-0 md:border-r border-stone-200/80 dark:border-stone-800">
+          <div className="p-4 sm:p-6 bg-[#F8F6F2] dark:bg-stone-800/60 flex flex-col justify-between border-b md:border-b-0 md:border-r border-stone-200/80 dark:border-stone-800">
             <div className="space-y-4">
               {/* View Switcher Pills */}
               <div className="flex items-center gap-1.5 p-1 bg-stone-200/70 dark:bg-stone-700/60 rounded-xl text-xs">
@@ -171,7 +172,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                       src={displayImage}
                       alt={product.name}
                       onError={(e) => {
-                        e.currentTarget.src = '/products/floral-garden.jpg';
+                        const target = e.currentTarget;
+                        target.src = resolveImage('', product.id, product.name);
                       }}
                       className="w-full h-full object-cover"
                     />
@@ -206,7 +208,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                           src={img}
                           alt={`${product.name} thumbnail ${idx + 1}`}
                           onError={(e) => {
-                            e.currentTarget.src = '/products/floral-garden.jpg';
+                            const target = e.currentTarget;
+                            target.src = resolveImage('', product.id, product.name);
                           }}
                           className="w-full h-full object-cover"
                         />

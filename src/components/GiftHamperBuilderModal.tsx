@@ -3,6 +3,7 @@ import { X, Gift, Check, Sparkles, ShoppingBag, Plus } from 'lucide-react';
 import { Product, CartItem } from '../types';
 import { MOCK_PRODUCTS } from '../data/mockProducts';
 import { resolveImage } from '../utils/productNormalizer';
+import { PRODUCT_ASSETS } from '../assets/products';
 
 interface GiftHamperBuilderModalProps {
   isOpen: boolean;
@@ -61,10 +62,10 @@ export const GiftHamperBuilderModal: React.FC<GiftHamperBuilderModalProps> = ({
       originalPrice: originalHamperTotal,
       rating: 5.0,
       reviewsCount: 1,
-      image: '/src/assets/images/gilded_lotus_hamper_1790142539828.jpg',
+      image: PRODUCT_ASSETS.gildedLotusHamper,
       galleryImages: [
-        '/src/assets/images/gilded_lotus_hamper_1790142539828.jpg',
-        '/src/assets/images/evil_eye_gift_box_1790142259757.jpg'
+        PRODUCT_ASSETS.gildedLotusHamper,
+        PRODUCT_ASSETS.evilEyeBox,
       ],
       burnTimeHours: selectedCandleIds.length * 55,
       weightGrams: selectedCandleIds.length * 240 + 350,
@@ -146,7 +147,7 @@ export const GiftHamperBuilderModal: React.FC<GiftHamperBuilderModalProps> = ({
                         src={resolveImage(candle.image, candle.id, candle.name)}
                         alt={candle.name}
                         onError={(e) => {
-                          e.currentTarget.src = '/products/floral-garden.jpg';
+                          e.currentTarget.src = resolveImage('', candle.id, candle.name);
                         }}
                         className="w-full h-full object-cover"
                       />

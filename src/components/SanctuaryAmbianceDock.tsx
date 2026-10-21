@@ -101,7 +101,7 @@ export const SanctuaryAmbianceDock: React.FC<SanctuaryAmbianceDockProps> = ({
 
       {/* Expanded Interactive Sanctuary Console Modal / Flyout */}
       {isOpen && (
-        <div className="fixed bottom-20 right-4 sm:right-6 z-50 w-80 sm:w-88 bg-stone-900/95 text-stone-100 rounded-2xl p-5 shadow-2xl border border-amber-500/30 backdrop-blur-lg animate-in slide-in-from-bottom-3 duration-200">
+        <div className="fixed bottom-20 left-4 right-4 sm:left-auto sm:right-6 z-50 max-w-[calc(100vw-2rem)] sm:w-88 bg-stone-900/95 text-stone-100 rounded-2xl p-5 shadow-2xl border border-amber-500/30 backdrop-blur-lg animate-in slide-in-from-bottom-3 duration-200">
           {/* Header */}
           <div className="flex items-center justify-between pb-3 border-b border-stone-800">
             <div className="flex items-center gap-2">

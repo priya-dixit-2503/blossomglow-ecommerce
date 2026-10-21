@@ -94,14 +94,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 w-full">
         <div className="max-w-3xl space-y-6 sm:space-y-8 bg-transparent">
           {/* Artisan Atelier Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-stone-950/10 backdrop-blur-sm border border-stone-950/20 text-stone-950 text-xs uppercase tracking-widest font-semibold">
-            <Sparkles className="w-3.5 h-3.5 text-amber-800" />
-            <span className="text-stone-950 font-semibold">Handcrafted Atelier • Living Artisan Creations</span>
+          <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-full bg-stone-950/10 backdrop-blur-sm border border-stone-950/20 text-stone-950 text-[10px] sm:text-xs uppercase tracking-wider sm:tracking-widest font-semibold max-w-full">
+            <Sparkles className="w-3.5 h-3.5 text-amber-800 shrink-0" />
+            <span className="text-stone-950 font-semibold truncate sm:overflow-visible">Handcrafted Atelier • Living Artisan Creations</span>
           </div>
 
           {/* Headline & Description */}
           <div className="space-y-4">
-            <h1 className="font-editorial text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-normal text-stone-950 tracking-tight leading-[1.06] [text-wrap:balance]">
+            <h1 className="font-editorial text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-normal text-stone-950 tracking-tight leading-[1.08] [text-wrap:balance]">
               Sacred Flames &{' '}
               <span className="italic font-serif text-stone-950">Hand-Sculpted</span>{' '}
               Sanctuary Decor
@@ -113,10 +113,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           </div>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 pt-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
             <button
               onClick={onShopCandles}
-              className="px-8 py-4 bg-stone-950 hover:bg-stone-800 text-white text-xs sm:text-sm font-semibold uppercase tracking-[0.18em] rounded-xl transition-all shadow-xl hover:shadow-2xl flex items-center justify-center gap-2 group cursor-pointer active:scale-95"
+              className="px-6 sm:px-8 py-3.5 sm:py-4 bg-stone-950 hover:bg-stone-800 text-white text-xs sm:text-sm font-semibold uppercase tracking-[0.16em] sm:tracking-[0.18em] rounded-xl transition-all shadow-xl hover:shadow-2xl flex items-center justify-center gap-2 group cursor-pointer active:scale-95"
             >
               <span>Shop Real Creations</span>
               <ArrowRight className="w-4 h-4 text-white group-hover:translate-x-1 transition-transform" />
@@ -124,20 +124,20 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
             <button
               onClick={() => onExploreCollection('Diffusers & Home Accents')}
-              className="px-8 py-4 bg-white/80 hover:bg-white text-stone-950 border border-stone-300 hover:border-stone-400 text-xs sm:text-sm font-semibold uppercase tracking-[0.18em] rounded-xl shadow-md backdrop-blur-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+              className="px-6 sm:px-8 py-3.5 sm:py-4 bg-white/80 hover:bg-white text-stone-950 border border-stone-300 hover:border-stone-400 text-xs sm:text-sm font-semibold uppercase tracking-[0.16em] sm:tracking-[0.18em] rounded-xl shadow-md backdrop-blur-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
             >
-              <Flame className="w-4 h-4 text-amber-700" />
+              <Flame className="w-4 h-4 text-amber-700 shrink-0" />
               <span>Explore Jesmonite & Trays</span>
             </button>
           </div>
 
           {/* Atelier Pillars / Micro Metrics */}
-          <div className="pt-6 border-t border-stone-950/15 grid grid-cols-3 gap-3 sm:gap-6 text-left max-w-lg">
+          <div className="pt-6 border-t border-stone-950/15 grid grid-cols-3 gap-2 sm:gap-6 text-left max-w-lg">
             <div className="space-y-0.5">
-              <span className="font-editorial text-lg sm:text-2xl text-stone-950 font-medium">
+              <span className="font-editorial text-base sm:text-2xl text-stone-950 font-medium">
                 100% Soy
               </span>
-              <p className="text-[10px] sm:text-xs text-stone-800 font-normal leading-tight">
+              <p className="text-[9.5px] sm:text-xs text-stone-800 font-normal leading-tight">
                 Zero toxins, soot-free burn
               </p>
             </div>

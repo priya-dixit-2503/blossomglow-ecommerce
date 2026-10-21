@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Sparkles, Flame, Check, ShoppingBag, Sliders, RefreshCw, Wand2, ArrowRight } from 'lucide-react';
 import { Product, CartItem, VesselColor, WickType } from '../types';
 import { ambientAudio } from '../utils/soundEffects';
+import { PRODUCT_ASSETS } from '../assets/products';
 
 interface CustomCandleBlenderModalProps {
   isOpen: boolean;
@@ -77,8 +78,8 @@ export const CustomCandleBlenderModal: React.FC<CustomCandleBlenderModalProps> =
       originalPrice: 1799,
       rating: 5.0,
       reviewsCount: 1,
-      image: '/src/assets/images/bloom_rose_candles_1790142304223.jpg',
-      galleryImages: ['/src/assets/images/bloom_rose_candles_1790142304223.jpg'],
+      image: PRODUCT_ASSETS.floralGarden,
+      galleryImages: [PRODUCT_ASSETS.floralGarden],
       burnTimeHours: 65,
       weightGrams: 280,
       scentIntensity: 5,

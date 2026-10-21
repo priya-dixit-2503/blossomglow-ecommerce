@@ -72,7 +72,18 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/api/categories", "/api/categories/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/categories", "/api/categories/**").hasRole("ADMIN")
 
-                // Public storefront interactive endpoints (reviews, cart, wishlist, orders, tracking, contact)
+                // 4. SECURED ORDER APIS:
+                // - Only ADMIN can change order status or delete orders
+                .requestMatchers(HttpMethod.PUT, "/api/orders/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/orders/**").hasRole("ADMIN")
+                // - Public order tracking by order number
+                .requestMatchers(HttpMethod.GET, "/api/orders/track", "/api/orders/track/**").permitAll()
+                // - Customers can create orders (authenticated with JWT)
+                .requestMatchers(HttpMethod.POST, "/api/orders", "/api/orders/**").authenticated()
+                // - Customers can view only their own orders (authenticated with JWT)
+                .requestMatchers(HttpMethod.GET, "/api/orders/my-orders", "/api/orders", "/api/orders/**").authenticated()
+
+                // Public storefront interactive endpoints (reviews, cart, wishlist, contact)
                 .requestMatchers(
                     "/api/reviews",
                     "/api/reviews/**",
@@ -80,18 +91,14 @@ public class SecurityConfig {
                     "/api/cart/**",
                     "/api/wishlist",
                     "/api/wishlist/**",
-                    "/api/orders",
-                    "/api/orders/track",
-                    "/api/orders/track/**",
                     "/api/contact",
                     "/api/contact/**"
                 ).permitAll()
 
-                // Authenticated customer endpoints
+                // Authenticated customer profile endpoints
                 .requestMatchers(
                     "/api/auth/me",
-                    "/api/user/**",
-                    "/api/orders/my-orders"
+                    "/api/user/**"
                 ).authenticated()
 
                 // Admin-only endpoints prefix

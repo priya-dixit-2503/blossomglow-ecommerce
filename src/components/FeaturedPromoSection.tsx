@@ -50,13 +50,13 @@ export const FeaturedPromoSection: React.FC<FeaturedPromoSectionProps> = ({ onSe
     <section className="py-16 sm:py-24 bg-[#F7F3EE] border-b border-stone-200/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
         {/* Subtle Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <div className="space-y-2">
-            <span className="text-[11px] uppercase tracking-[0.25em] font-semibold text-amber-900 block flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-700" />
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4">
+          <div className="space-y-1.5 sm:space-y-2">
+            <span className="text-[10px] sm:text-[11px] uppercase tracking-[0.2em] sm:tracking-[0.25em] font-semibold text-amber-900 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-amber-700 shrink-0" />
               BlossomGlow Signatures
             </span>
-            <h2 className="font-editorial text-3xl sm:text-4xl font-light text-stone-900 leading-tight">
+            <h2 className="font-editorial text-2xl sm:text-4xl font-light text-stone-900 leading-tight">
               Curated Collections
             </h2>
           </div>
@@ -66,12 +66,12 @@ export const FeaturedPromoSection: React.FC<FeaturedPromoSectionProps> = ({ onSe
         </div>
 
         {/* 4 Card Promo Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {FEATURED_PROMOS.map((promo) => (
             <div
               key={promo.title}
               onClick={() => onSelectCategory(promo.categoryFilter)}
-              className="group relative h-[380px] sm:h-[420px] rounded-2xl overflow-hidden cursor-pointer shadow-md hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-1"
+              className="group relative h-[300px] sm:h-[420px] rounded-2xl overflow-hidden cursor-pointer shadow-md hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-1"
             >
               {/* Background Image */}
               <img

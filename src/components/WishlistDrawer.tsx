@@ -119,7 +119,7 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
     <div className="fixed inset-0 z-50 overflow-hidden bg-stone-950/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="absolute inset-0" onClick={onClose} />
 
-      <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+      <div className="fixed inset-y-0 right-0 max-w-full flex pl-4 sm:pl-10">
         <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col justify-between border-l border-stone-200 animate-in slide-in-from-right duration-300">
           {/* Header */}
           <div className="px-6 py-5 border-b border-stone-200 bg-[#FAF8F5] flex items-center justify-between">
@@ -244,7 +244,7 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
                       alt={product.name}
                       referrerPolicy="no-referrer"
                       onError={(e) => {
-                        e.currentTarget.src = '/products/floral-garden.jpg';
+                        e.currentTarget.src = resolveImage('', product.id, product.name);
                       }}
                       onClick={() => {
                         onSelectProduct(product);

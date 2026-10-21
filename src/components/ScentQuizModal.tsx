@@ -216,7 +216,7 @@ export const ScentQuizModal: React.FC<ScentQuizModalProps> = ({
                   src={resolveImage(recommendedProduct.image || (recommendedProduct as any)?.imageUrl, recommendedProduct.id, recommendedProduct.name)}
                   alt={recommendedProduct.name}
                   onError={(e) => {
-                    e.currentTarget.src = '/products/floral-garden.jpg';
+                    e.currentTarget.src = resolveImage('', recommendedProduct.id, recommendedProduct.name);
                   }}
                   className="w-28 h-28 sm:w-32 sm:h-32 rounded-lg object-cover bg-stone-100 shrink-0"
                 />

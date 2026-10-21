@@ -100,7 +100,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                   alt={product.name}
                   referrerPolicy="no-referrer"
                   onError={(e) => {
-                    e.currentTarget.src = '/products/floral-garden.jpg';
+                    e.currentTarget.src = resolveImage('', product.id, product.name);
                   }}
                   className="w-14 h-14 rounded-lg object-cover bg-stone-100 shrink-0"
                 />

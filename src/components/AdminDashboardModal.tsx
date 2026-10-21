@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   X, Plus, Edit2, Trash2, Package, ShoppingCart, TrendingUp, Check,
   AlertCircle, RefreshCw, Filter, Sparkles, Image as ImageIcon, ExternalLink,
-  ShieldCheck, Users, Layers, Warehouse, Search, ArrowUpDown, AlertTriangle
+  ShieldCheck, Users, Layers, Warehouse, Search, ArrowUpDown, AlertTriangle, Upload
 } from 'lucide-react';
 import { Product, Order, OrderStatus, ProductCategory } from '../types';
 import { CandleApiService } from '../services/api';
@@ -25,6 +25,35 @@ const AVAILABLE_CATEGORIES: ProductCategory[] = [
   'Botanical Bowls & Shells',
   'Sculptural Candles',
   'Artisanal Decor',
+];
+
+const AVAILABLE_FRAGRANCES: Product['fragranceFamily'][] = [
+  'Floral',
+  'Woody & Amber',
+  'Fresh & Herbal',
+  'Gourmand & Warm',
+];
+
+const PRESET_ARTISAN_PHOTOS = [
+  { label: 'Amber Rose Floral Garden Jar', value: PRODUCT_ASSETS.floralGarden },
+  { label: 'Coastal Calm & Spice Pillar', value: PRODUCT_ASSETS.naturalSpice },
+  { label: 'Handcrafted Wooden Dough Bowl', value: PRODUCT_ASSETS.woodenDoughBowl },
+  { label: 'Lotus Serenity Hand-Poured Urli', value: PRODUCT_ASSETS.lotusGlow },
+  { label: 'Meditating Buddha Sanctuary', value: PRODUCT_ASSETS.buddhaSerenity },
+  { label: 'Minimal Ribbed Pillar Candle', value: PRODUCT_ASSETS.minimalRibbed },
+  { label: 'Aura Luxury Evil Eye Hamper', value: PRODUCT_ASSETS.evilEyeBox },
+  { label: 'Gilded Lotus Blossom Gift Hamper', value: PRODUCT_ASSETS.gildedLotusHamper },
+  { label: 'Teddy Baby Shower Keepsake', value: PRODUCT_ASSETS.teddyBabyShower },
+  { label: 'Artisan Baby Elephant Figurine', value: PRODUCT_ASSETS.babyElephant },
+  { label: 'Fluted Marbled Decorative Tray Duo', value: PRODUCT_ASSETS.flutedMarbledTrayDuo },
+  { label: 'Ribbed Fluted Carousel Jar', value: PRODUCT_ASSETS.flutedCarouselJar },
+  { label: 'Nordic Terrazzo Arch Vessel', value: PRODUCT_ASSETS.terrazzoArchVase },
+  { label: 'Minimalist Hollow Arch Bud Vessel', value: PRODUCT_ASSETS.hollowArchBudVase },
+  { label: 'Wavy Ripple Sculptural Tray', value: PRODUCT_ASSETS.wavyRippleTray },
+  { label: 'Concrete Arch Minimalist Clock', value: PRODUCT_ASSETS.concreteArchClock },
+  { label: 'Modern Abstract Thinker Statue Trio', value: PRODUCT_ASSETS.abstractThinkers },
+  { label: 'Baby Teddy Lotus Blossom Keepsake', value: PRODUCT_ASSETS.teddyLotusBlossom },
+  { label: 'Oceanic Conch Botanical Seashell', value: PRODUCT_ASSETS.oceanicSeashell },
 ];
 
 const ORDER_STATUS_OPTIONS: OrderStatus[] = [
@@ -89,16 +118,22 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   const loadData = async () => {
     setLoading(true);
     try {
-      const [prods, ords, cats] = await Promise.all([
-        CandleApiService.getProducts(),
-        CandleApiService.getAllOrdersForAdmin(),
-        CandleApiService.getCategories(),
-      ]);
+      const prods = await CandleApiService.getProducts();
       setProducts(prods);
-      setOrders(ords);
-      setCategories(cats || []);
+      try {
+        const ords = await CandleApiService.getAllOrdersForAdmin();
+        setOrders(ords || []);
+      } catch {
+        setOrders(CandleApiService.getStoredOrders() || []);
+      }
+      try {
+        const cats = await CandleApiService.getCategories();
+        setCategories(cats || []);
+      } catch {
+        setCategories(CandleApiService.getStoredCategories() || []);
+      }
     } catch {
-      // error handling
+      // fallback
     } finally {
       setLoading(false);
     }
@@ -114,18 +149,102 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
 
   const showToast = (msg: string) => {
     setNotification(msg);
-    setTimeout(() => setNotification(null), 3000);
+    setTimeout(() => setNotification(null), 3500);
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 8 * 1024 * 1024) {
+        showToast('Image is larger than 8MB. Please select a smaller photo.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        if (result) {
+          // Compress high-res image to lightweight crisp thumbnail to guarantee persistence without storage quota errors
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_DIM = 800;
+            let width = img.width;
+            let height = img.height;
+            if (width > height) {
+              if (width > MAX_DIM) {
+                height = Math.round((height * MAX_DIM) / width);
+                width = MAX_DIM;
+              }
+            } else {
+              if (height > MAX_DIM) {
+                width = Math.round((width * MAX_DIM) / height);
+                height = MAX_DIM;
+              }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, width, height);
+              const compressed = canvas.toDataURL('image/jpeg', 0.85);
+              setProductForm((prev) => ({
+                ...prev,
+                image: compressed,
+                galleryImages: [compressed, ...(prev.galleryImages || [])],
+              }));
+              showToast('Custom photo attached and optimized!');
+              return;
+            }
+            setProductForm((prev) => ({
+              ...prev,
+              image: result,
+              galleryImages: [result, ...(prev.galleryImages || [])],
+            }));
+            showToast('Custom photo attached successfully!');
+          };
+          img.onerror = () => {
+            setProductForm((prev) => ({
+              ...prev,
+              image: result,
+              galleryImages: [result, ...(prev.galleryImages || [])],
+            }));
+            showToast('Custom photo attached successfully!');
+          };
+          img.src = result;
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!productForm.name || !productForm.name.trim()) {
+      showToast('Please enter a candle or product title.');
+      return;
+    }
+    setLoading(true);
     try {
+      const payload: Partial<Product> = {
+        ...productForm,
+        name: productForm.name.trim(),
+        price: Number(productForm.price) || 499,
+        originalPrice: productForm.originalPrice ? Number(productForm.originalPrice) : Math.round((Number(productForm.price) || 499) * 1.25),
+        stockQuantity: Number(productForm.stockQuantity) || 0,
+        burnTimeHours: Number(productForm.burnTimeHours) || 40,
+        weightGrams: Number(productForm.weightGrams) || 250,
+        image: productForm.image || PRODUCT_ASSETS.floralGarden,
+        galleryImages: productForm.galleryImages && productForm.galleryImages.length > 0
+          ? productForm.galleryImages
+          : [productForm.image || PRODUCT_ASSETS.floralGarden],
+      };
+
       if (editingProduct) {
-        await CandleApiService.updateProduct(editingProduct.id, productForm);
-        showToast(`Product "${productForm.name}" updated successfully!`);
+        await CandleApiService.updateProduct(editingProduct.id, payload);
+        showToast(`Product "${payload.name}" updated successfully!`);
       } else {
-        await CandleApiService.createProduct(productForm);
-        showToast(`New product "${productForm.name}" created!`);
+        await CandleApiService.createProduct(payload);
+        showToast(`New product "${payload.name}" created and saved!`);
       }
       setEditingProduct(null);
       setIsCreatingNew(false);
@@ -133,6 +252,8 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
       if (onProductsChanged) onProductsChanged();
     } catch (err: any) {
       showToast(`Error: ${err.message || 'Failed to save product'}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -528,17 +649,17 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                           value={productForm.name}
                           onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
                           placeholder="e.g. Kashmiri Saffron & Amber Jar"
-                          className="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none"
+                          className="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none focus:border-amber-800"
                         />
                       </div>
                       <div>
                         <label className="block text-stone-700 font-medium mb-1">Tagline</label>
                         <input
                           type="text"
-                          value={productForm.tagline}
+                          value={productForm.tagline || ''}
                           onChange={(e) => setProductForm({ ...productForm, tagline: e.target.value })}
                           placeholder="Warm, meditative botanical burn"
-                          className="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none"
+                          className="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none focus:border-amber-800"
                         />
                       </div>
                       <div>
@@ -546,10 +667,22 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                         <select
                           value={productForm.category}
                           onChange={(e) => setProductForm({ ...productForm, category: e.target.value as ProductCategory })}
-                          className="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none bg-white"
+                          className="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none bg-white focus:border-amber-800"
                         >
                           {AVAILABLE_CATEGORIES.map((c) => (
                             <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-stone-700 font-medium mb-1">Fragrance Family</label>
+                        <select
+                          value={productForm.fragranceFamily || 'Floral'}
+                          onChange={(e) => setProductForm({ ...productForm, fragranceFamily: e.target.value as Product['fragranceFamily'] })}
+                          className="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none bg-white focus:border-amber-800"
+                        >
+                          {AVAILABLE_FRAGRANCES.map((f) => (
+                            <option key={f} value={f}>{f}</option>
                           ))}
                         </select>
                       </div>
@@ -558,49 +691,171 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                         <input
                           type="number"
                           required
-                          value={productForm.price}
+                          min="1"
+                          value={productForm.price ?? 499}
                           onChange={(e) => setProductForm({ ...productForm, price: Number(e.target.value) })}
-                          className="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none font-mono"
+                          className="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none font-mono focus:border-amber-800"
                         />
                       </div>
                       <div>
                         <label className="block text-stone-700 font-medium mb-1">Original Price (₹)</label>
                         <input
                           type="number"
-                          value={productForm.originalPrice}
+                          min="1"
+                          value={productForm.originalPrice ?? ''}
                           onChange={(e) => setProductForm({ ...productForm, originalPrice: Number(e.target.value) })}
-                          className="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none font-mono"
+                          placeholder="e.g. 699"
+                          className="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none font-mono focus:border-amber-800"
                         />
                       </div>
                       <div>
-                        <label className="block text-stone-700 font-medium mb-1">Initial Stock Units *</label>
+                        <label className="block text-stone-700 font-medium mb-1">Stock Units *</label>
                         <input
                           type="number"
                           required
-                          value={productForm.stockQuantity}
-                          onChange={(e) => setProductForm({ ...productForm, stockQuantity: Number(e.target.value) })}
-                          className="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none font-mono"
+                          min="0"
+                          value={productForm.stockQuantity ?? 30}
+                          onChange={(e) => setProductForm({ ...productForm, stockQuantity: Number(e.target.value), inStock: Number(e.target.value) > 0 })}
+                          className="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none font-mono focus:border-amber-800"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-stone-700 font-medium mb-1">Burn Time (Hours)</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={productForm.burnTimeHours ?? 40}
+                          onChange={(e) => setProductForm({ ...productForm, burnTimeHours: Number(e.target.value) })}
+                          className="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none font-mono focus:border-amber-800"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-stone-700 font-medium mb-1">Weight (Grams)</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={productForm.weightGrams ?? 250}
+                          onChange={(e) => setProductForm({ ...productForm, weightGrams: Number(e.target.value) })}
+                          className="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none font-mono focus:border-amber-800"
                         />
                       </div>
                     </div>
 
-                    <div className="flex justify-end gap-2 pt-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsCreatingNew(false);
-                          setEditingProduct(null);
-                        }}
-                        className="px-4 py-2 border border-stone-300 rounded-xl text-stone-700 hover:bg-stone-100"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        className="px-5 py-2 bg-amber-900 hover:bg-amber-950 text-white rounded-xl font-medium"
-                      >
-                        {editingProduct ? 'Save Changes' : 'Create Product'}
-                      </button>
+                    {/* Image Selection & Upload Area */}
+                    <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-stone-800 font-medium">Artisan Product Photography</label>
+                        <span className="text-[11px] text-stone-500">Preset gallery or upload your own file</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+                        <div className="sm:col-span-2 space-y-2">
+                          <select
+                            value={productForm.image || ''}
+                            onChange={(e) => setProductForm({
+                              ...productForm,
+                              image: e.target.value,
+                              galleryImages: [e.target.value],
+                            })}
+                            className="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none bg-white text-xs"
+                          >
+                            <option value="">Select from Authentic Atelier Photos</option>
+                            {PRESET_ARTISAN_PHOTOS.map((photo) => (
+                              <option key={photo.label} value={photo.value}>
+                                {photo.label}
+                              </option>
+                            ))}
+                          </select>
+
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={productForm.image || ''}
+                              onChange={(e) => setProductForm({
+                                ...productForm,
+                                image: e.target.value,
+                                galleryImages: [e.target.value],
+                              })}
+                              placeholder="Or paste external image URL / path"
+                              className="w-full px-3 py-1.5 border border-stone-300 rounded-xl focus:outline-none text-[11px] font-mono"
+                            />
+                            <label className="shrink-0 px-3 py-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 rounded-xl text-xs font-medium cursor-pointer flex items-center gap-1.5 transition-colors">
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>Upload</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                                className="hidden"
+                              />
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* Image Preview Box */}
+                        <div className="flex items-center gap-3">
+                          <div className="w-16 h-16 rounded-xl border border-stone-300 overflow-hidden bg-stone-100 flex items-center justify-center shrink-0 shadow-inner">
+                            {productForm.image ? (
+                              <img
+                                src={productForm.image}
+                                alt="Preview"
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).src = PRODUCT_ASSETS.floralGarden;
+                                }}
+                              />
+                            ) : (
+                              <ImageIcon className="w-6 h-6 text-stone-400" />
+                            )}
+                          </div>
+                          <div className="text-[11px] text-stone-600 leading-tight">
+                            <span className="font-semibold block text-stone-800">Live Preview</span>
+                            <span>Photo used across carousel &amp; shop</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-stone-700 font-medium mb-1">Fragrance Story &amp; Description</label>
+                      <textarea
+                        rows={2}
+                        value={productForm.description || ''}
+                        onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                        placeholder="Detailed formulation, notes, wax type, and vessel crafting story..."
+                        className="w-full px-3 py-2 border border-stone-300 rounded-xl focus:outline-none focus:border-amber-800"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={productForm.inStock ?? true}
+                          onChange={(e) => setProductForm({ ...productForm, inStock: e.target.checked })}
+                          className="rounded text-amber-900 focus:ring-amber-800 w-4 h-4"
+                        />
+                        <span className="text-stone-700 font-medium">Available in Stock for Immediate Dispatch</span>
+                      </label>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCreatingNew(false);
+                            setEditingProduct(null);
+                          }}
+                          className="px-4 py-2 border border-stone-300 rounded-xl text-stone-700 hover:bg-stone-100 cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={loading}
+                          className="px-5 py-2 bg-amber-900 hover:bg-amber-950 text-white rounded-xl font-medium cursor-pointer shadow-sm transition-all disabled:opacity-50"
+                        >
+                          {editingProduct ? 'Save Changes' : 'Create & Save Product'}
+                        </button>
+                      </div>
                     </div>
                   </form>
                 </div>
@@ -628,7 +883,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                               src={resolveImage(p.image || (p as any)?.imageUrl, p.id, p.name)}
                               alt={p.name}
                               onError={(e) => {
-                                e.currentTarget.src = '/products/floral-garden.jpg';
+                                e.currentTarget.src = resolveImage('', p.id, p.name);
                               }}
                               className="w-10 h-10 rounded-xl object-cover border border-stone-200"
                             />
@@ -721,7 +976,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                                 src={resolveImage(p.image || (p as any)?.imageUrl, p.id, p.name)}
                                 alt={p.name}
                                 onError={(e) => {
-                                  e.currentTarget.src = '/products/floral-garden.jpg';
+                                  e.currentTarget.src = resolveImage('', p.id, p.name);
                                 }}
                                 className="w-10 h-10 rounded-xl object-cover border"
                               />

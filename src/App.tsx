@@ -38,6 +38,7 @@ import { AuraCollectionCircles } from './components/AuraCollectionCircles';
 
 import { Product, CartItem, VesselColor, WickType, CandleSize, FragranceFamily, Order, UserProfile } from './types';
 import { CandleApiService } from './services/api';
+import { PRODUCT_ASSETS } from './assets/products';
 import { CheckCircle2, ArrowRight, Sparkles, RefreshCw } from 'lucide-react';
 
 const CART_STORAGE_KEY = 'auradecor_cart_v3';
@@ -140,13 +141,15 @@ export default function App() {
       }
     });
 
-    // Listen to live inventory stock reductions (Stock = Stock - Ordered Quantity)
+    // Listen to live inventory stock reductions and product catalog updates
     const handleStockUpdate = () => {
       fetchProducts();
     };
     window.addEventListener('blossomglow:stock-updated', handleStockUpdate);
+    window.addEventListener('blossomglow:products-updated', handleStockUpdate);
     return () => {
       window.removeEventListener('blossomglow:stock-updated', handleStockUpdate);
+      window.removeEventListener('blossomglow:products-updated', handleStockUpdate);
     };
   }, []);
 
@@ -173,55 +176,44 @@ export default function App() {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
   }, [cartItems]);
 
-  // Persist wishlist for guest sessions (logged in users use authoritative Spring Boot DB)
+  // Persist wishlist
   useEffect(() => {
-    if (!currentUser && !CandleApiService.isUserLoggedIn()) {
-      CandleApiService.saveStoredWishlist(wishlistIds);
-    }
-  }, [wishlistIds, currentUser]);
+    CandleApiService.saveStoredWishlist(wishlistIds);
+  }, [wishlistIds]);
 
   const handleToggleWishlist = async (productId: string) => {
-    if (currentUser || CandleApiService.isUserLoggedIn()) {
-      setIsWishlistLoading(true);
-      setWishlistError(null);
-      try {
-        const next = await CandleApiService.toggleWishlist(productId);
-        setWishlistIds(next);
-      } catch (err: any) {
-        setWishlistError(err?.message || 'Failed to update saved fragrance');
-      } finally {
-        setIsWishlistLoading(false);
-      }
-    } else {
+    setIsWishlistLoading(true);
+    setWishlistError(null);
+    try {
+      const next = await CandleApiService.toggleWishlist(productId);
+      setWishlistIds(next);
+    } catch {
+      // Guaranteed local fallback
       setWishlistIds((prev) => {
         const exists = prev.includes(productId);
         const next = exists ? prev.filter((id) => id !== productId) : [...prev, productId];
         CandleApiService.saveStoredWishlist(next);
-        CandleApiService.toggleWishlist(productId, next).catch(() => {});
         return next;
       });
+    } finally {
+      setIsWishlistLoading(false);
     }
   };
 
   const handleRemoveFromWishlist = async (productId: string) => {
-    if (currentUser || CandleApiService.isUserLoggedIn()) {
-      setIsWishlistLoading(true);
-      setWishlistError(null);
-      try {
-        const next = await CandleApiService.removeFromWishlist(productId);
-        setWishlistIds(next);
-      } catch (err: any) {
-        setWishlistError(err?.message || 'Failed to remove saved fragrance');
-      } finally {
-        setIsWishlistLoading(false);
-      }
-    } else {
+    setIsWishlistLoading(true);
+    setWishlistError(null);
+    try {
+      const next = await CandleApiService.removeFromWishlist(productId);
+      setWishlistIds(next);
+    } catch {
       setWishlistIds((prev) => {
         const next = prev.filter((id) => id !== productId);
         CandleApiService.saveStoredWishlist(next);
-        CandleApiService.removeFromWishlist(productId).catch(() => {});
         return next;
       });
+    } finally {
+      setIsWishlistLoading(false);
     }
   };
 
@@ -340,8 +332,8 @@ export default function App() {
       price: candleData.price || 1499,
       rating: 5.0,
       reviewsCount: 1,
-      image: candleData.image || '/src/assets/images/bloom_rose_candles_1790142304223.jpg',
-      galleryImages: [candleData.image || '/src/assets/images/bloom_rose_candles_1790142304223.jpg'],
+      image: candleData.image || PRODUCT_ASSETS.floralGarden,
+      galleryImages: [candleData.image || PRODUCT_ASSETS.floralGarden],
       burnTimeHours: candleData.burnTimeHours || 65,
       weightGrams: candleData.weightGrams || 280,
       scentIntensity: candleData.scentIntensity || 5,
@@ -383,8 +375,8 @@ export default function App() {
       price: hamperData.price || 1999,
       rating: 5.0,
       reviewsCount: 1,
-      image: hamperData.image || '/src/assets/images/gilded_lotus_hamper_1790142539828.jpg',
-      galleryImages: [hamperData.image || '/src/assets/images/gilded_lotus_hamper_1790142539828.jpg'],
+      image: hamperData.image || PRODUCT_ASSETS.gildedLotusHamper,
+      galleryImages: [hamperData.image || PRODUCT_ASSETS.gildedLotusHamper],
       burnTimeHours: 120,
       weightGrams: 850,
       scentIntensity: 5,
@@ -518,7 +510,7 @@ export default function App() {
 
   return (
     <div
-      className={`min-h-screen flex flex-col font-sans selection:bg-amber-100 transition-colors duration-700 ${
+      className={`min-h-screen flex flex-col font-sans selection:bg-amber-100 transition-colors duration-700 w-full max-w-full overflow-x-hidden ${
         isCandlelitMode ? 'bg-[#1A1614] text-[#EFEBE4]' : 'bg-[#FAF8F5] text-stone-900'
       }`}
     >

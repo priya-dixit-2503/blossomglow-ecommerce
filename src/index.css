@@ -9,11 +9,30 @@
   --color-candle-amber: #D97706;
 }
 
+html {
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
   background-color: #FAF8F5;
   color: #1C1917;
   overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#root {
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+  min-height: 100vh;
 }
 
 .font-editorial {

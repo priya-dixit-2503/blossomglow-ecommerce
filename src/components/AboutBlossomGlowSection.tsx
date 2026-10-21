@@ -26,7 +26,7 @@ export const AboutBlossomGlowSection: React.FC<AboutBlossomGlowSectionProps> = (
               </div>
 
               {/* Floating Accent Badge */}
-              <div className="absolute -bottom-6 -right-4 sm:right-6 bg-[#181412] text-white p-5 rounded-2xl shadow-2xl border border-stone-700 max-w-xs space-y-1">
+              <div className="relative sm:absolute sm:-bottom-6 sm:right-6 mt-4 sm:mt-0 bg-[#181412] text-white p-4 sm:p-5 rounded-2xl shadow-xl sm:shadow-2xl border border-stone-700 w-full sm:max-w-xs space-y-1">
                 <div className="flex items-center gap-1.5 text-amber-400 text-xs font-mono uppercase tracking-wider font-semibold">
                   <span>BlossomGlow Atelier</span>
                 </div>
