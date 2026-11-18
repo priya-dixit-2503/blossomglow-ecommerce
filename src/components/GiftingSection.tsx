@@ -62,7 +62,7 @@ const OCCASIONS: OccasionCard[] = [
 
 export const GiftingSection: React.FC<GiftingSectionProps> = ({ onExploreGifting, onOpenCustomHamper }) => {
   return (
-    <section id="gifting" className="py-20 sm:py-28 bg-[#FAF8F5] relative overflow-hidden">
+    <section id="gifting" className="scroll-mt-24 py-20 sm:py-28 bg-[#FAF8F5] relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-14">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto space-y-3">

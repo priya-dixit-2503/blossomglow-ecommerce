@@ -498,6 +498,26 @@ export default function App() {
 
   const handleCategoryCardClick = (categoryName: string) => {
     setSelectedCategory(categoryName);
+    if (
+      categoryName === 'Pillar Candles' ||
+      categoryName === 'Jar & Container Candles' ||
+      categoryName === 'Gift Candles' ||
+      categoryName === 'Scented Candles'
+    ) {
+      setShowcaseActiveTab('pillars-jars');
+    } else if (
+      categoryName === 'Floating & Urli Sets' ||
+      categoryName === 'Sculptural Candles' ||
+      categoryName === 'Decorative Candles'
+    ) {
+      setShowcaseActiveTab('floating-festive');
+    } else if (categoryName === 'Luxury Gift Hampers' || categoryName === 'Gift Hampers') {
+      setShowcaseActiveTab('gift-hampers');
+    } else if (categoryName === 'New Arrivals') {
+      setShowcaseActiveTab('new-arrivals');
+    } else {
+      setShowcaseActiveTab('all');
+    }
     handleScrollToShop();
   };
 
@@ -552,8 +572,7 @@ export default function App() {
         onNavigateToHome={handleScrollToHome}
         onNavigateToNewArrivals={handleScrollToNewArrivals}
         onNavigateToShop={(category?: string) => {
-          if (category) setSelectedCategory(category);
-          handleScrollToShop();
+          handleCategoryCardClick(category || 'All Creations');
         }}
         onNavigateToCollections={handleScrollToCollections}
         onNavigateToAbout={handleScrollToAbout}
@@ -583,8 +602,7 @@ export default function App() {
       <HeroSection
         onShopCandles={handleScrollToShop}
         onExploreCollection={(category?: string) => {
-          if (category) setSelectedCategory(category);
-          handleScrollToShop();
+          handleCategoryCardClick(category || 'All Creations');
         }}
       />
 
@@ -598,7 +616,7 @@ export default function App() {
       <FeaturedPromoSection onSelectCategory={handleCategoryCardClick} />
 
       {/* 5. PRODUCT SHOWCASE: SHOP OUR CREATIONS */}
-      <div ref={shopSectionRef} id="shop">
+      <div ref={shopSectionRef} id="shop" className="scroll-mt-24">
         <FavoritesShowcaseSection
           products={products}
           wishlistIds={wishlistIds}

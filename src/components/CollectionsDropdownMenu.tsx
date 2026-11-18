@@ -11,9 +11,14 @@ import {
   Package,
   PhoneCall,
   X,
+  BookOpen,
+  HeartHandshake,
+  Check,
 } from 'lucide-react';
 
-interface CollectionsDropdownMenuProps {
+export type MegaMenuTab = 'categories' | 'collections' | 'gifting' | 'experiences';
+
+export interface CollectionsDropdownMenuProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenSearch: () => void;
@@ -29,6 +34,8 @@ interface CollectionsDropdownMenuProps {
   onNavigateToAbout: () => void;
   onNavigateToGifting: () => void;
   isBackendConnected: boolean | null;
+  activeTab?: MegaMenuTab;
+  onTabChange?: (tab: MegaMenuTab) => void;
 }
 
 export const CollectionsDropdownMenu: React.FC<CollectionsDropdownMenuProps> = ({
@@ -47,6 +54,8 @@ export const CollectionsDropdownMenu: React.FC<CollectionsDropdownMenuProps> = (
   onNavigateToAbout,
   onNavigateToGifting,
   isBackendConnected,
+  activeTab = 'categories',
+  onTabChange,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -64,405 +73,605 @@ export const CollectionsDropdownMenu: React.FC<CollectionsDropdownMenuProps> = (
 
   if (!isOpen) return null;
 
-  // Shop Categories
-  const shopCategories = [
+  // 1. Categories List
+  const categories = [
     {
       name: 'Pillar Candles',
       filterName: 'Pillar Candles',
-      desc: 'Smokeless, long-burning organic soy pillars with hand-carved fluting',
+      desc: 'Smokeless fluted soy pillars with up to 50h clean luminescence',
       tag: 'Bestseller',
       icon: Flame,
     },
     {
       name: 'Jar & Container Candles',
       filterName: 'Jar & Container Candles',
-      desc: 'Amber apothecary glass infused with therapeutic botanical oils',
+      desc: 'Amber apothecary glass infused with therapeutic essential oils',
       tag: 'Aromatherapy',
       icon: Sparkles,
     },
     {
       name: 'Floating & Urli Sets',
       filterName: 'Floating & Urli Sets',
-      desc: 'Artisan lotus water blooms with hammered brass & copper finishes',
+      desc: 'Artisan lotus water blooms with brass & copper accents',
       tag: 'Festive',
       icon: Layers,
     },
     {
-      name: 'Sculptural & Buddha Candles',
-      filterName: 'Decorative Candles',
-      desc: 'Zen mudra meditating silhouettes for serene mindfulness spaces',
-      tag: 'Sanctuary',
+      name: 'Sculptural & Buddha',
+      filterName: 'Sculptural Candles',
+      desc: 'Buddha serenity in meditative Dhyana mudra & architectural art',
+      tag: 'Mindfulness',
       icon: Compass,
     },
     {
-      name: 'Home Décor Candles',
-      filterName: 'Home Décor Candles',
-      desc: 'Textured architectural ridges casting rhythmic geometric shadows',
-      tag: 'Modernist',
-      icon: Layers,
-    },
-    {
-      name: 'Gift Hampers & Dough Bowls',
-      filterName: 'Gift Hampers',
-      desc: 'Solid Himalayan wood bowls & evil eye talisman luxury gift boxes',
+      name: 'Luxury Gift Hampers',
+      filterName: 'Luxury Gift Hampers',
+      desc: 'Sacred Evil Eye talisman boxes & gold-foil chest hampers',
       tag: 'Signature',
       icon: Gift,
     },
+    {
+      name: 'Botanical Bowls & Shells',
+      filterName: 'Botanical Bowls & Shells',
+      desc: 'Reclaimed coastal coconuts & hand-carved Himalayan wood dough boats',
+      tag: 'Eco-Luxury',
+      icon: Flame,
+    },
+    {
+      name: 'Home Accents & Trays',
+      filterName: 'Diffusers & Home Accents',
+      desc: 'Jesmonite fluted trays, arch vases and minimalist clocks',
+      tag: 'Modernist',
+      icon: Layers,
+    },
   ];
 
-  // Signature Collections
-  const collectionsList = [
+  // 2. Signature Editions
+  const signatureCollections = [
     {
       name: 'Botanical Bloom Edition',
-      notes: 'Damask Rose, Wild Jasmine & Amber',
-      desc: 'Hand-sculpted 3D blooming roses crowned in organic soy wax',
-      category: 'Gift Candles',
-      highlight: 'Top Rated',
+      notes: 'Damask Rose · Wild Jasmine · Warm Amber',
+      desc: 'Intricately hand-sculpted 3D blooming roses crowned on organic soy wax',
+      category: 'Jar & Container Candles',
+      badge: 'Iconic',
     },
     {
       name: 'Tropical Spice Sanctuary',
-      notes: 'Cinnamon Bark, Cardamom & Reclaimed Coconut',
-      desc: 'Poured in genuine reclaimed coastal coconut halves',
-      category: 'Scented Candles',
-      highlight: 'Eco-Luxury',
+      notes: 'Cinnamon Bark · Cardamom · Roasted Coconut',
+      desc: 'Poured in genuine reclaimed coconut shells from coastal communities',
+      category: 'Pillar Candles',
+      badge: 'Eco-Craft',
     },
     {
       name: 'Nirvana Sanctuary',
-      notes: 'Sandalwood, Oudh & Golden Amber',
-      desc: 'Peaceful sculpted Buddha in meditative Dhyana mudra',
-      category: 'Meditation Candles',
-      highlight: 'Zen Altar',
+      notes: 'Mysore Sandalwood · Oudh · Amber Resin',
+      desc: 'Peaceful sculpted Buddha silhouette in tranquil meditative pose',
+      category: 'Sculptural Candles',
+      badge: 'Zen Altar',
     },
     {
       name: 'Zenith Bloom Lotus',
-      notes: 'White Lotus Petals & Green Bamboo',
-      desc: 'Sculpted lotus flower petals with crackling wood wicks',
-      category: 'Decorative Candles',
-      highlight: 'New Arrival',
+      notes: 'White Lotus Petals · Bamboo · Water Lily',
+      desc: 'Sculpted lotus petals burning with crackling organic wooden wicks',
+      category: 'Sculptural Candles',
+      badge: 'New Edition',
     },
     {
       name: 'Modernist Sanctuary',
-      notes: 'Sea Salt, Sage & Crisp Citrus',
-      desc: 'Architectural ribbed candle creating rhythmic geometric shadows',
-      category: 'Home Décor Candles',
-      highlight: 'Minimalist',
+      notes: 'Sea Salt · Coastal Sage · Crisp Citrus',
+      desc: 'Textured architectural ridges casting rhythmic geometric shadows',
+      category: 'Diffusers & Home Accents',
+      badge: 'Minimalist',
     },
     {
-      name: 'Heritage Hearth Dough Bowls',
-      notes: 'Smoked Vanilla, Pinecones & Warm Cedar',
-      desc: 'Solid hand-carved reclaimed wood boat with dried botanicals',
-      category: 'Scented Candles',
-      highlight: 'Centerpiece',
+      name: 'Heritage Hearth Troughs',
+      notes: 'Smoked Vanilla · Cedarwood · Star Anise',
+      desc: 'Solid hand-carved oblong wood boat with natural dried botanicals',
+      category: 'Botanical Bowls & Shells',
+      badge: 'Centerpiece',
     },
   ];
 
   return (
     <>
-      {/* Backdrop overlay for closing on outside click */}
+      {/* Backdrop overlay */}
       <div
-        className="fixed inset-0 bg-stone-950/25 backdrop-blur-2xs z-30 transition-opacity animate-in fade-in duration-200"
-        onClick={onClose}
+        className="fixed inset-0 bg-stone-950/30 backdrop-blur-xs z-30 transition-opacity animate-in fade-in duration-200"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
         aria-hidden="true"
       />
 
       {/* Dropdown Container */}
       <div
         ref={containerRef}
+        onClick={(e) => e.stopPropagation()}
         className="absolute top-full left-0 right-0 z-40 bg-[#FAF7F2] border-b border-stone-300 shadow-2xl animate-in slide-in-from-top-2 duration-200 max-h-[85vh] overflow-y-auto"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
-          {/* Top Quick Search & Experience Bar */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pb-4 border-b border-stone-200/80">
-            <div
-              onClick={() => {
-                onClose();
-                onOpenSearch();
-              }}
-              className="flex items-center gap-2.5 px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-stone-500 text-xs cursor-pointer shadow-2xs hover:border-amber-400 hover:text-stone-800 transition-all"
-            >
-              <Search className="w-4 h-4 text-stone-400" />
-              <span>Search candles, scents, gifts...</span>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+          {/* TOP BAR: Nav tabs & Quick Search */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-stone-200/90">
+            {/* Tabs */}
+            <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto pb-1 sm:pb-0">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTabChange && onTabChange('categories');
+                }}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap cursor-pointer ${
+                  activeTab === 'categories'
+                    ? 'bg-[#1C1815] text-[#FAF8F5] shadow-xs'
+                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/50'
+                }`}
+              >
+                Shop By Category
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTabChange && onTabChange('collections');
+                }}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap cursor-pointer ${
+                  activeTab === 'collections'
+                    ? 'bg-[#1C1815] text-[#FAF8F5] shadow-xs'
+                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/50'
+                }`}
+              >
+                Signature Collections
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTabChange && onTabChange('gifting');
+                }}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap cursor-pointer ${
+                  activeTab === 'gifting'
+                    ? 'bg-[#1C1815] text-[#FAF8F5] shadow-xs'
+                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/50'
+                }`}
+              >
+                Gifting & Bespoke
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTabChange && onTabChange('experiences');
+                }}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap cursor-pointer ${
+                  activeTab === 'experiences'
+                    ? 'bg-[#1C1815] text-[#FAF8F5] shadow-xs'
+                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/50'
+                }`}
+              >
+                Experiences & Care
+              </button>
             </div>
 
-            {onOpenScentQuiz && (
-              <div
-                onClick={() => {
+            {/* Quick Search and Close */}
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
                   onClose();
-                  onOpenScentQuiz();
+                  onOpenSearch();
                 }}
-                className="p-2.5 px-3.5 bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-amber-600/15 border border-amber-600/25 rounded-xl flex items-center justify-between cursor-pointer hover:bg-amber-500/20 transition-all shadow-2xs"
+                className="flex items-center gap-2 px-3 py-1.5 bg-white border border-stone-300 rounded-lg text-stone-500 hover:text-stone-900 hover:border-amber-500 text-xs transition-colors cursor-pointer"
+                title="Search candles and fragrances"
               >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-800">
-                    <Sparkles className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-amber-950">Find Your Signature Scent</p>
-                    <p className="text-[10px] text-stone-600">60-second fragrance quiz</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-3.5 h-3.5 text-amber-800" />
-              </div>
-            )}
+                <Search className="w-3.5 h-3.5 text-stone-400" />
+                <span className="hidden sm:inline">Search creations...</span>
+                <span className="sm:hidden">Search</span>
+              </button>
 
-            {onOpenCustomBlender && (
-              <div
-                onClick={() => {
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
                   onClose();
-                  onOpenCustomBlender();
                 }}
-                className="p-2.5 px-3.5 bg-white border border-stone-300 rounded-xl flex items-center justify-between cursor-pointer hover:border-amber-500/40 hover:bg-stone-50 transition-all shadow-2xs"
+                className="p-1.5 text-stone-400 hover:text-stone-800 hover:bg-stone-200/60 rounded-lg transition-colors cursor-pointer"
+                aria-label="Close menu"
+                title="Close menu (Esc)"
               >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-stone-100 flex items-center justify-center text-stone-700">
-                    <Wand2 className="w-3.5 h-3.5 text-amber-800" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-stone-900">Custom Candle Blender</p>
-                    <p className="text-[10px] text-stone-500">3D Interactive fragrance mixing</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-3.5 h-3.5 text-stone-500" />
-              </div>
-            )}
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
-          {/* 4-COLUMN RICH ATELIER DIRECTORY */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 text-xs">
-            {/* COLUMN 1: Shop By Category */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
-                <Flame className="w-4 h-4 text-amber-800 shrink-0" />
-                <span className="font-bold tracking-wider uppercase text-stone-900 text-[12px]">Shop By Category</span>
+          {/* TAB 1: SHOP BY CATEGORY */}
+          {activeTab === 'categories' && (
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-8">
+              {/* Left 8 Cols: Category Cards */}
+              <div className="md:col-span-8 space-y-3">
+                <div className="flex items-center justify-between pb-1">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-stone-900">
+                    Artisanal Candle Categories
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onClose();
+                      onNavigateToShop('All Creations');
+                    }}
+                    className="text-xs font-medium text-amber-800 hover:text-amber-950 flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <span>View All Creations</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {categories.map((cat) => {
+                    const Icon = cat.icon;
+                    return (
+                      <button
+                        key={cat.name}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onClose();
+                          onNavigateToShop(cat.filterName);
+                        }}
+                        className="text-left p-3 rounded-xl bg-white border border-stone-200/90 hover:border-amber-400 hover:shadow-xs transition-all cursor-pointer group"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-md bg-stone-100 flex items-center justify-center text-stone-600 group-hover:bg-amber-100 group-hover:text-amber-900 transition-colors">
+                              <Icon className="w-3.5 h-3.5" />
+                            </div>
+                            <span className="text-xs font-semibold text-stone-900 group-hover:text-amber-900 transition-colors">
+                              {cat.name}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-stone-400 group-hover:text-amber-800 transition-colors">
+                            {cat.tag}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-stone-500 line-clamp-1 pl-8">
+                          {cat.desc}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              <button
-                onClick={() => {
-                  onClose();
-                  onNavigateToShop();
-                }}
-                className="font-semibold text-amber-900 hover:text-amber-950 flex items-center justify-between w-full text-left py-1 hover:translate-x-0.5 transition-transform cursor-pointer"
-              >
-                <span>View All Creations</span>
-                <ArrowRight className="w-3.5 h-3.5 text-amber-700" />
-              </button>
-
-              <div className="space-y-1 pt-1">
-                {shopCategories.map((cat) => (
-                  <button
-                    key={cat.name}
-                    onClick={() => {
-                      onClose();
-                      onNavigateToShop(cat.filterName);
-                    }}
-                    className="w-full text-left py-1.5 px-2 rounded-lg hover:bg-white text-stone-700 hover:text-amber-950 transition-all cursor-pointer group"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-medium group-hover:text-amber-900">{cat.name}</span>
-                      <span className="text-[9px] font-mono px-1.5 py-0.2 bg-amber-100/70 text-amber-900 rounded">{cat.tag}</span>
+              {/* Right 4 Cols: Featured Spotlight Card */}
+              <div className="md:col-span-4 bg-[#F5EFE6] border border-amber-900/15 rounded-2xl p-4 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-900 uppercase tracking-wider mb-2">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Featured In Atelier</span>
+                  </div>
+                  <h4 className="font-serif text-base text-stone-900 font-bold mb-1">
+                    Amber Rose Floral Garden Jar
+                  </h4>
+                  <p className="text-xs text-stone-600 leading-relaxed mb-3">
+                    Hand-sculpted 3D blooming roses crowned over clean organic soy wax in clear apothecary glass with natural bamboo lid.
+                  </p>
+                  <div className="text-xs text-stone-500 space-y-1 mb-4">
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3 h-3 text-emerald-600" />
+                      <span>100% Organic Soy & Cotton Wick</span>
                     </div>
-                    <p className="text-[10px] text-stone-400 group-hover:text-stone-500 truncate">{cat.desc}</p>
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3 h-3 text-emerald-600" />
+                      <span>45 Hours Clean Burn Time</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-amber-900/10">
+                  <div>
+                    <span className="text-stone-400 line-through text-xs mr-1.5">₹799</span>
+                    <span className="text-sm font-bold text-amber-950">₹599</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onClose();
+                      onNavigateToShop('Jar & Container Candles');
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-[#1C1815] text-[#FAF8F5] text-xs font-medium hover:bg-stone-800 transition-colors cursor-pointer flex items-center gap-1"
+                  >
+                    <span>Explore</span>
+                    <ArrowRight className="w-3 h-3" />
                   </button>
-                ))}
+                </div>
               </div>
             </div>
+          )}
 
-            {/* COLUMN 2: Signature Series Collections */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
-                <Layers className="w-4 h-4 text-amber-800 shrink-0" />
-                <span className="font-bold tracking-wider uppercase text-stone-900 text-[12px]">Signature Collections</span>
+          {/* TAB 2: SIGNATURE COLLECTIONS */}
+          {activeTab === 'collections' && (
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 border-b border-stone-200">
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-stone-900">
+                    Artisanal Fragrance Series
+                  </h3>
+                  <p className="text-xs text-stone-500">
+                    Master-blended aromatics crafted for specific moods, rituals and mindful sanctuaries
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClose();
+                    onNavigateToCollections();
+                  }}
+                  className="px-3.5 py-1.5 rounded-lg bg-amber-900 text-amber-100 hover:bg-amber-950 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors self-start sm:self-auto shadow-2xs"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Explore All Collections on Page</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
               </div>
 
-              <button
-                onClick={() => {
-                  onClose();
-                  onNavigateToCollections();
-                }}
-                className="font-semibold text-amber-900 hover:text-amber-950 flex items-center justify-between w-full text-left py-1 hover:translate-x-0.5 transition-transform cursor-pointer"
-              >
-                <span>Explore All Series</span>
-                <ArrowRight className="w-3.5 h-3.5 text-amber-700" />
-              </button>
-
-              <div className="space-y-1 pt-1">
-                {collectionsList.map((col) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {signatureCollections.map((col) => (
                   <button
                     key={col.name}
-                    onClick={() => {
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
                       onClose();
                       onNavigateToShop(col.category);
                     }}
-                    className="w-full text-left py-1.5 px-2 rounded-lg hover:bg-white text-stone-700 hover:text-amber-950 transition-all cursor-pointer group"
+                    className="text-left p-3.5 rounded-xl bg-white border border-stone-200/90 hover:border-amber-400 hover:shadow-xs transition-all cursor-pointer group"
                   >
-                    <div className="flex items-center justify-between">
-                      <p className="text-[11px] font-medium text-stone-800 group-hover:text-amber-900 truncate">{col.name}</p>
-                      <span className="text-[9px] font-mono text-amber-800 bg-amber-50 px-1 rounded">{col.highlight}</span>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-semibold text-stone-900 group-hover:text-amber-900 transition-colors">
+                        {col.name}
+                      </span>
+                      <span className="text-[10px] font-medium text-amber-800">
+                        {col.badge}
+                      </span>
                     </div>
-                    <p className="text-[10px] text-amber-800/80 truncate">{col.notes}</p>
+                    <p className="text-[11px] font-medium text-amber-900/80 mb-1">
+                      {col.notes}
+                    </p>
+                    <p className="text-[11px] text-stone-500 line-clamp-2">
+                      {col.desc}
+                    </p>
                   </button>
                 ))}
               </div>
             </div>
+          )}
 
-            {/* COLUMN 3: Curated Gifting & Hampers */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
-                <Gift className="w-4 h-4 text-amber-800 shrink-0" />
-                <span className="font-bold tracking-wider uppercase text-stone-900 text-[12px]">Gifts & Hampers</span>
+          {/* TAB 3: GIFTING & BESPOKE */}
+          {activeTab === 'gifting' && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Card 1: Curated Hampers */}
+              <div className="p-4 rounded-2xl bg-white border border-stone-200/90 flex flex-col justify-between">
+                <div>
+                  <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-900 flex items-center justify-center mb-3">
+                    <Gift className="w-4 h-4" />
+                  </div>
+                  <h4 className="text-sm font-semibold text-stone-900 mb-1">Curated Gift Chest Hampers</h4>
+                  <p className="text-xs text-stone-500 mb-3 leading-relaxed">
+                    Royal turquoise and gold-foil gift boxes with authentic evil eye glass nazars and hand-tied satin ribbons.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClose();
+                    onNavigateToGifting();
+                  }}
+                  className="w-full py-2 px-3 rounded-lg bg-stone-100 hover:bg-stone-200/80 text-stone-800 text-xs font-medium transition-colors flex items-center justify-between cursor-pointer"
+                >
+                  <span>Explore Gift Sets</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
               </div>
 
-              <button
-                onClick={() => {
-                  onClose();
-                  onNavigateToGifting();
-                }}
-                className="font-semibold text-amber-900 hover:text-amber-950 flex items-center justify-between w-full text-left py-1 hover:translate-x-0.5 transition-transform cursor-pointer"
-              >
-                <span>Curated Gift Sets</span>
-                <ArrowRight className="w-3.5 h-3.5 text-amber-700" />
-              </button>
-
-              <div className="space-y-2 pt-1">
-                <button
-                  onClick={() => {
-                    onClose();
-                    onNavigateToShop('Gift Hampers');
-                  }}
-                  className="w-full text-left p-2.5 rounded-xl bg-white border border-stone-200 hover:border-amber-400 hover:bg-stone-50/50 transition-all cursor-pointer group shadow-2xs"
-                >
-                  <p className="text-[11px] font-semibold text-stone-900 group-hover:text-amber-900">The Sacred Evil Eye Protection Box</p>
-                  <p className="text-[10px] text-stone-500 mt-0.5">Royal blue talisman candle hamper with glass nazar charm</p>
-                </button>
-
+              {/* Card 2: Custom Hamper Builder */}
+              <div className="p-4 rounded-2xl bg-white border border-amber-300/80 bg-gradient-to-b from-amber-500/5 to-transparent flex flex-col justify-between">
+                <div>
+                  <div className="w-8 h-8 rounded-lg bg-amber-200/70 text-amber-950 flex items-center justify-center mb-3">
+                    <Wand2 className="w-4 h-4" />
+                  </div>
+                  <h4 className="text-sm font-semibold text-stone-900 mb-1">Custom Gift Hamper Builder</h4>
+                  <p className="text-xs text-stone-500 mb-3 leading-relaxed">
+                    Select your box size, handpick candle pairs, choose matches, and include a personalized wax-sealed handwritten note.
+                  </p>
+                </div>
                 {onOpenGiftBuilder && (
                   <button
-                    onClick={() => {
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
                       onClose();
                       onOpenGiftBuilder();
                     }}
-                    className="w-full text-left p-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-600/25 transition-all cursor-pointer group"
+                    className="w-full py-2 px-3 rounded-lg bg-amber-900 text-amber-100 hover:bg-amber-950 text-xs font-medium transition-colors flex items-center justify-between cursor-pointer"
                   >
-                    <p className="text-[11px] font-semibold text-amber-900 group-hover:text-amber-950 flex items-center justify-between">
-                      <span>Build Custom Gift Hamper</span>
-                      <ArrowRight className="w-3 h-3 text-amber-700" />
-                    </p>
-                    <p className="text-[10px] text-stone-600 mt-0.5">Curate bespoke boxes & handwritten wax seals</p>
+                    <span>Build Custom Hamper</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 )}
-
-                <button
-                  onClick={() => {
-                    onClose();
-                    onOpenContact();
-                  }}
-                  className="w-full text-left p-2.5 rounded-xl bg-white border border-stone-200 hover:border-amber-400 hover:bg-stone-50/50 transition-all cursor-pointer group shadow-2xs"
-                >
-                  <p className="text-[11px] font-semibold text-stone-900 group-hover:text-amber-900">Corporate & Wedding Concierge</p>
-                  <p className="text-[10px] text-stone-500 mt-0.5">Personalized custom wax seals & bespoke return favors</p>
-                </button>
-              </div>
-            </div>
-
-            {/* COLUMN 4: Atelier Story, Guides & Concierge */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
-                <Compass className="w-4 h-4 text-amber-800 shrink-0" />
-                <span className="font-bold tracking-wider uppercase text-stone-900 text-[12px]">Our Story & Guides</span>
               </div>
 
-              <div className="space-y-2 pt-1">
-                <button
-                  onClick={() => {
-                    onClose();
-                    onNavigateToAbout();
-                  }}
-                  className="w-full text-left p-2.5 rounded-xl bg-white border border-stone-200 hover:border-amber-400 hover:bg-stone-50/50 transition-all cursor-pointer group shadow-2xs"
-                >
-                  <p className="text-[11px] font-semibold text-stone-900 group-hover:text-amber-900">Atelier Story & Artisans</p>
-                  <p className="text-[10px] text-stone-500 mt-0.5">Women empowerment & non-toxic botanical soy</p>
-                </button>
-
-                {onOpenCareGuide && (
-                  <button
-                    onClick={() => {
-                      onClose();
-                      onOpenCareGuide();
-                    }}
-                    className="w-full text-left p-2.5 rounded-xl bg-white border border-stone-200 hover:border-amber-400 hover:bg-stone-50/50 transition-all cursor-pointer group shadow-2xs"
-                  >
-                    <p className="text-[11px] font-semibold text-stone-900 group-hover:text-amber-900">Candle Care & Burn Guide</p>
-                    <p className="text-[10px] text-stone-500 mt-0.5">Wick trimming & clean smokeless burn etiquette</p>
-                  </button>
-                )}
-
-                {onOpenTracking && (
-                  <button
-                    onClick={() => {
-                      onClose();
-                      onOpenTracking();
-                    }}
-                    className="w-full text-left p-2.5 rounded-xl bg-white border border-stone-200 hover:border-amber-400 hover:bg-stone-50/50 transition-all cursor-pointer group shadow-2xs"
-                  >
-                    <p className="text-[11px] font-semibold text-stone-900 group-hover:text-amber-900 flex items-center justify-between">
-                      <span>Track Order Status</span>
-                      <Package className="w-3.5 h-3.5 text-stone-400 group-hover:text-amber-700" />
-                    </p>
-                    <p className="text-[10px] text-stone-500 mt-0.5">Live courier dispatch & parcel tracker</p>
-                  </button>
-                )}
-
-                <button
-                  onClick={() => {
-                    onClose();
-                    onOpenContact();
-                  }}
-                  className="w-full text-left p-2.5 rounded-xl bg-white border border-stone-200 hover:border-amber-400 hover:bg-stone-50/50 transition-all cursor-pointer group shadow-2xs"
-                >
-                  <p className="text-[11px] font-semibold text-stone-900 group-hover:text-amber-900 flex items-center justify-between">
-                    <span>Contact Concierge</span>
-                    <PhoneCall className="w-3.5 h-3.5 text-stone-400 group-hover:text-amber-700" />
+              {/* Card 3: Wedding & Corporate Concierge */}
+              <div className="p-4 rounded-2xl bg-white border border-stone-200/90 flex flex-col justify-between">
+                <div>
+                  <div className="w-8 h-8 rounded-lg bg-stone-100 text-stone-700 flex items-center justify-center mb-3">
+                    <HeartHandshake className="w-4 h-4" />
+                  </div>
+                  <h4 className="text-sm font-semibold text-stone-900 mb-1">Corporate & Wedding Favors</h4>
+                  <p className="text-xs text-stone-500 mb-3 leading-relaxed">
+                    Custom fragrances, monogrammed wax seals, and luxury packaging tailored for corporate milestones and intimate weddings.
                   </p>
-                  <p className="text-[10px] text-stone-500 mt-0.5">Direct phone & WhatsApp atelier assistance</p>
-                </button>
-
+                </div>
                 <button
-                  onClick={() => {
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
                     onClose();
-                    onOpenArchitecture();
+                    onOpenContact();
                   }}
-                  className="w-full text-left p-2.5 rounded-xl bg-stone-100 hover:bg-stone-200/60 text-stone-600 text-[11px] font-mono flex items-center justify-between transition-colors cursor-pointer"
-                  title="Spring Boot 8080 API Specs"
+                  className="w-full py-2 px-3 rounded-lg bg-stone-100 hover:bg-stone-200/80 text-stone-800 text-xs font-medium transition-colors flex items-center justify-between cursor-pointer"
                 >
-                  <span>API Specs (Port 8080)</span>
-                  <span
-                    className={`w-2 h-2 rounded-full ${
-                      isBackendConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'
-                    }`}
-                  />
+                  <span>Inquire with Atelier</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Bottom Quick Bar */}
+          {/* TAB 4: EXPERIENCES & CARE */}
+          {activeTab === 'experiences' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Scent Quiz */}
+              {onOpenScentQuiz && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClose();
+                    onOpenScentQuiz();
+                  }}
+                  className="text-left p-3.5 rounded-xl bg-white border border-stone-200/90 hover:border-amber-400 hover:shadow-xs transition-all cursor-pointer group"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center mb-2">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <h4 className="text-xs font-semibold text-stone-900 group-hover:text-amber-900 mb-0.5">
+                    60-Second Scent Quiz
+                  </h4>
+                  <p className="text-[11px] text-stone-500">
+                    Discover the botanical candle tailored to your mood and aromatic profile
+                  </p>
+                </button>
+              )}
+
+              {/* Custom Candle Blender */}
+              {onOpenCustomBlender && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClose();
+                    onOpenCustomBlender();
+                  }}
+                  className="text-left p-3.5 rounded-xl bg-white border border-stone-200/90 hover:border-amber-400 hover:shadow-xs transition-all cursor-pointer group"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center mb-2">
+                    <Wand2 className="w-4 h-4" />
+                  </div>
+                  <h4 className="text-xs font-semibold text-stone-900 group-hover:text-amber-900 mb-0.5">
+                    Custom Candle Blender
+                  </h4>
+                  <p className="text-[11px] text-stone-500">
+                    Blend vessels, fragrance pyramids, and crackling wood wicks in 3D
+                  </p>
+                </button>
+              )}
+
+              {/* Candle Care Guide */}
+              {onOpenCareGuide && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClose();
+                    onOpenCareGuide();
+                  }}
+                  className="text-left p-3.5 rounded-xl bg-white border border-stone-200/90 hover:border-amber-400 hover:shadow-xs transition-all cursor-pointer group"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-stone-100 text-stone-700 flex items-center justify-center mb-2">
+                    <BookOpen className="w-4 h-4" />
+                  </div>
+                  <h4 className="text-xs font-semibold text-stone-900 group-hover:text-amber-900 mb-0.5">
+                    Candle Care & Burn Etiquette
+                  </h4>
+                  <p className="text-[11px] text-stone-500">
+                    Pro tips for wick trimming, memory rings, and soot-free combustion
+                  </p>
+                </button>
+              )}
+
+              {/* Live Order Tracker */}
+              {onOpenTracking && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClose();
+                    onOpenTracking();
+                  }}
+                  className="text-left p-3.5 rounded-xl bg-white border border-stone-200/90 hover:border-amber-400 hover:shadow-xs transition-all cursor-pointer group"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-stone-100 text-stone-700 flex items-center justify-center mb-2">
+                    <Package className="w-4 h-4" />
+                  </div>
+                  <h4 className="text-xs font-semibold text-stone-900 group-hover:text-amber-900 mb-0.5">
+                    Live Courier Tracker
+                  </h4>
+                  <p className="text-[11px] text-stone-500">
+                    Real-time dispatch status and courier tracking for your orders
+                  </p>
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* BOTTOM FOOTER OF DROPDOWN */}
           <div className="pt-3 border-t border-stone-200/80 flex flex-wrap items-center justify-between gap-3 text-xs text-stone-500">
-            <div className="flex items-center gap-4">
-              <span className="flex items-center gap-1.5 font-medium text-stone-700">
+            <div className="flex items-center gap-3">
+              <span className="text-stone-700 font-medium flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-amber-600" />
                 100% Handcrafted Botanical Soy Wax
               </span>
-              <span className="hidden sm:inline text-stone-300">•</span>
+              <span className="hidden sm:inline text-stone-300">·</span>
               <span className="hidden sm:inline">Free Shipping across India on orders over ₹999</span>
             </div>
 
-            <button
-              onClick={onClose}
-              className="px-3.5 py-1.5 rounded-lg bg-stone-200/70 hover:bg-stone-200 text-stone-700 hover:text-stone-950 font-medium transition-colors cursor-pointer ml-auto flex items-center gap-1.5 text-[11px]"
-            >
-              <span>Close Collections</span>
-              <X className="w-3.5 h-3.5" />
-            </button>
+            <div className="flex items-center gap-3 ml-auto">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClose();
+                  onOpenContact();
+                }}
+                className="text-stone-600 hover:text-amber-900 font-medium flex items-center gap-1.5 cursor-pointer text-[11px]"
+              >
+                <PhoneCall className="w-3.5 h-3.5" />
+                <span>Concierge & Support</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClose();
+                  onOpenArchitecture();
+                }}
+                className="px-2 py-0.5 rounded-md bg-stone-200/80 hover:bg-stone-200 text-stone-700 text-[10px] font-mono flex items-center gap-1.5 cursor-pointer"
+                title="Spring Boot 8080 Backend REST API Status"
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    isBackendConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+                  }`}
+                />
+                <span>API 8080</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

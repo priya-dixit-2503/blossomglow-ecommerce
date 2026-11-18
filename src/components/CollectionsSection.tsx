@@ -68,7 +68,7 @@ const COLLECTIONS: CollectionItem[] = [
 
 export const CollectionsSection: React.FC<CollectionsSectionProps> = ({ onSelectCollection }) => {
   return (
-    <section id="collections" className="py-20 bg-[#F5F1EC] border-t border-stone-200/70">
+    <section id="collections" className="scroll-mt-24 py-20 bg-[#F5F1EC] border-t border-stone-200/70">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto space-y-3">
